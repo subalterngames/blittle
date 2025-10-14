@@ -120,6 +120,7 @@ pub fn get_dst_slices(
 ) -> DstSlices {
     let ptr = dst.as_mut_ptr();
     let src_w_stride = src_w * stride;
+    let src_h = src_h.min((dst.len() / stride) / dst_w);
     (0..src_h)
         .map(|src_y| unsafe {
             let dst_index = to_index(dst_x, dst_y + src_y, dst_w, stride);
@@ -142,6 +143,21 @@ pub fn blit_to_slices(src: &[u8], dst: &mut DstSlices, src_w: usize, stride: usi
         let src_index = to_index(0, src_y, src_w, stride);
         dst_slice.copy_from_slice(&src[src_index..src_index + src_w_stride]);
     });
+}
+
+/// Clip `dst_x`, `dst_y`, and `src_w` to be within the bounds of the size of `dst`.
+pub fn clip(
+    dst: &[u8],
+    dst_x: &mut usize,
+    dst_y: &mut usize,
+    dst_w: usize,
+    src_w: &mut usize,
+    stride: usize,
+) {
+    let dst_h = (dst.len() / stride) / dst_w;
+    *dst_x = (*dst_x).min(dst_w);
+    *dst_y = (*dst_y).min(dst_h);
+    *src_w = (*src_w).min(dst_w);
 }
 
 const fn to_index(x: usize, y: usize, w: usize, stride: usize) -> usize {
@@ -177,5 +193,18 @@ mod tests {
         encoder.set_depth(png::BitDepth::Eight);
         let mut writer = encoder.write_header().unwrap();
         writer.write_image_data(&dst).unwrap();
+    }
+
+    #[test]
+    fn test_clip() {
+        let dst_w = 32;
+        let dst = vec![0u8; dst_w * dst_w];
+        let mut dst_x = dst_w + 2;
+        let mut dst_y = 0;
+        let mut src_w = 64;
+        clip(&dst, &mut dst_x, &mut dst_y, dst_w, &mut src_w, 1);
+        assert_eq!(dst_x, dst_w);
+        assert_eq!(dst_y, 0);
+        assert_eq!(src_w, 32);
     }
 }
