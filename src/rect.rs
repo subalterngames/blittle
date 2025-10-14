@@ -2,6 +2,7 @@ use std::fmt::{Display, Formatter};
 
 /// A destination rect.
 /// `(x, y)` is the top-left position of the `Rect`.
+#[derive(Copy, Clone, Default)]
 pub struct Rect {
     pub x: usize,
     pub y: usize,
