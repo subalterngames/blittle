@@ -1,5 +1,10 @@
-use blittle::stride::RGB;
-use blittle::{blit_to_buffer, blit_to_slices, get_dst_slices};
+use blit::{Blit, BlitOptions, geom::Size, BlitBuffer};
+use blittle::{
+    stride::RGBA,
+    blit_to_buffer,
+    blit_to_slices,
+    get_dst_slices
+};
 use bytemuck::{cast_slice, cast_slice_mut};
 use criterion::{Criterion, criterion_group, criterion_main};
 
@@ -8,22 +13,30 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     const SRC_H: usize = 17;
     const DST_W: usize = 64;
     const DST_H: usize = 64;
-    let src = [[255u8, 0, 0]; SRC_W * SRC_H];
-    let mut dst = [[0u8, 0, 255]; DST_W * DST_H];
+    let src_map = [[255u8, 0, 0, 0]; SRC_W * SRC_H];
+    let mut dst_map = [[0u8, 0, 255, 0]; DST_W * DST_H];
 
     let dst_x = 2;
     let dst_y = 12;
 
-    let src = cast_slice::<[u8; RGB], u8>(&src);
-    let mut dst = cast_slice_mut::<[u8; RGB], u8>(&mut dst);
-    c.bench_function("blit_to_buffer", |b| {
-        b.iter(|| blit_to_buffer(&src, &mut dst, dst_x, dst_y, DST_W, SRC_W, RGB))
+    let src = cast_slice::<[u8; RGBA], u8>(&src_map);
+    let mut dst = cast_slice_mut::<[u8; RGBA], u8>(&mut dst_map);
+    c.bench_function("blittle_buffer", |b| {
+        b.iter(|| blit_to_buffer(&src, &mut dst, dst_x, dst_y, DST_W, SRC_W, RGBA))
     });
 
-    let mut dst_slices = get_dst_slices(&mut dst, dst_x, dst_y, DST_W, SRC_W, SRC_H, RGB);
-
-    c.bench_function("blit_to_buffer", |b| {
-        b.iter(|| blit_to_slices(&src, &mut dst_slices, SRC_W, RGB))
+    let mut dst_slices = get_dst_slices(&mut dst, dst_x, dst_y, DST_W, SRC_W, SRC_H, RGBA);
+    c.bench_function("blittle_slices", |b| {
+        b.iter(|| blit_to_slices(&src, &mut dst_slices, SRC_W, RGBA))
+    });
+    
+    let mut dst_buffer = [0u32; DST_W * DST_H];
+    let src_u32 = cast_slice::<[u8; 4], u32>(&src_map);
+    let blit_buffer = BlitBuffer::from_buffer(src_u32, SRC_W, 255);
+    let position = BlitOptions::new_position(dst_x, dst_y);
+    let size = Size { width: DST_W as u32, height: DST_H as u32 };
+    c.bench_function("blit", |b| {
+        b.iter(|| blit_buffer.blit(&mut dst_buffer, size, &position))
     });
 }
 
