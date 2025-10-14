@@ -1,5 +1,72 @@
+//! **`blittle` is a fast little blitter.**
+//!
+//! Most blit functions assume that you might want to apply a mask.
+//! A mask is typically a certain color.
+//! Pixels in the source image that have the mask color aren't blitted to the destination image.
+//!
+//! **`blittle` is fast because it doesn't apply a mask.**
+//! Since `blittle` doesn't have to check each pixel's color,
+//! it can copy every row of the source image onto the destination image, rather than each pixel.
+//!
+//! Note that in all cases, `src` and `dst` are slices of raw bitmaps, *not* png/jpg/etc. data.
+//!
+//! ```
+//! use blittle::{blit_to_buffer, stride::RGB};
+//!
+//! // The dimensions and byte data of the source image.
+//! let src_w = 32;
+//! let src_h = 17;
+//! let src = vec![0u8; src_w * src_h * RGB];
+//!
+//! // The dimensions and byte data of the destination image.
+//! let dst_w = 64;
+//! let dst_h = 64;
+//! let mut dst = vec![0u8; dst_w * dst_h * RGB];
+//!
+//! // Blit `src` onto `dst`.
+//! blit_to_buffer(&src, &mut dst, 2, 12, dst_w, src_w, RGB);
+//! ```
+//!
+//! `blittle` has two additional means of making blitting faster.
+//!
+//! Speed-up option 1: Add the `rayon` feature to use `rayon` for per-row copying.
+//!
+//! Speed-up option 2: Reuse blittable slices.
+//!
+//! In `blit_to_buffer`, `dst` is divided into per-row slices.
+//! Each row of `src` blits onto each of those slices.
+//! Internally, [`blit_to_buffer`] calls [`get_blit_slices`]
+//! If you know that you're going to blit `src` to `dst` repeatedly
+//! (for example, during an animation),
+//! you should instead use [`get_blit_slices`] and [`blit_to_slices`],
+//! thereby reusing the destination slices.
+//!
+//! ```
+//! use blittle::{blit_to_slices, get_dst_slices, stride::RGB};
+//!
+//! // The dimensions and byte data of the source image.
+//! let src_w = 32;
+//! let src_h = 17;
+//! let src = vec![0u8; src_w * src_h * RGB];
+//!
+//! // The dimensions and byte data of the destination image.
+//! let dst_w = 64;
+//! let dst_h = 64;
+//! let mut dst = vec![0u8; dst_w * dst_h * RGB];
+//!
+//! // Convert `dst` into predefined slices.
+//! let mut dst_slices = get_dst_slices(&mut dst, 2, 12, dst_w, src_w, src_h, RGB);
+//!
+//! // Blit `src` onto `dst`.
+//! // In an animation, the content of `src` would change every iteration.
+//! for _ in 0..100 {
+//!     blit_to_slices(&src, &mut dst_slices, src_w, RGB);
+//! }
+//! ```
+
 pub mod stride;
 
+#[cfg(feature = "rayon")]
 use rayon::prelude::*;
 use std::slice::from_raw_parts_mut;
 
@@ -62,7 +129,6 @@ pub fn get_dst_slices(
     (0..src_h)
         .map(|src_y| unsafe {
             let dst_index = to_index(dst_x, dst_y + src_y, dst_w, stride);
-
             from_raw_parts_mut(ptr.add(dst_index), src_w_stride)
         })
         .collect::<Vec<&mut [u8]>>()
@@ -78,12 +144,15 @@ pub fn get_dst_slices(
 pub fn blit_to_slices<'d>(src: &[u8], dst: &'d mut DstSlices<'d>, src_w: usize, stride: usize) {
     let src_w_stride = stride * src_w;
 
-    dst.into_par_iter()
-        .enumerate()
-        .for_each(|(src_y, dst_slice)| {
-            let src_index = to_index(0, src_y, src_w, stride);
-            dst_slice.copy_from_slice(&src[src_index..src_index + src_w_stride]);
-        });
+    #[cfg(feature = "rayon")]
+    let iter = dst.into_par_iter();
+    #[cfg(not(feature = "rayon"))]
+    let iter = dst.iter_mut();
+
+    iter.enumerate().for_each(|(src_y, dst_slice)| {
+        let src_index = to_index(0, src_y, src_w, stride);
+        dst_slice.copy_from_slice(&src[src_index..src_index + src_w_stride]);
+    });
 }
 
 const fn to_index(x: usize, y: usize, w: usize, stride: usize) -> usize {
