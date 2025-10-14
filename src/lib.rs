@@ -27,11 +27,7 @@
 //! blit_to_buffer(&src, &mut dst, 2, 12, dst_w, src_w, RGB);
 //! ```
 //!
-//! `blittle` has two additional means of making blitting faster.
-//!
-//! Speed-up option 1: Add the `rayon` feature to use `rayon` for per-row copying.
-//!
-//! Speed-up option 2: Reuse blittable slices.
+//! `blittle` has one additional means of making blitting faster:
 //!
 //! In `blit_to_buffer`, `dst` is divided into per-row slices.
 //! Each row of `src` blits onto each of those slices.
@@ -66,8 +62,6 @@
 
 pub mod stride;
 
-#[cfg(feature = "rayon")]
-use rayon::prelude::*;
 use std::slice::from_raw_parts_mut;
 
 /// A vec of slices of a `dst` vec. See: [`get_dst_slices`]
@@ -141,15 +135,10 @@ pub fn get_dst_slices(
 /// `stride` is the per-pixel stride length.
 /// For example, an 8-bit RGB pixel has a stride length of 3 (3 channels, 1 byte per channel).
 /// See `crate::stride` for some common stride values.
-pub fn blit_to_slices<'d>(src: &[u8], dst: &'d mut DstSlices, src_w: usize, stride: usize) {
+pub fn blit_to_slices(src: &[u8], dst: &mut DstSlices, src_w: usize, stride: usize) {
     let src_w_stride = stride * src_w;
 
-    #[cfg(feature = "rayon")]
-    let iter = dst.into_par_iter();
-    #[cfg(not(feature = "rayon"))]
-    let iter = dst.iter_mut();
-
-    iter.enumerate().for_each(|(src_y, dst_slice)| {
+    dst.iter_mut().enumerate().for_each(|(src_y, dst_slice)| {
         let src_index = to_index(0, src_y, src_w, stride);
         dst_slice.copy_from_slice(&src[src_index..src_index + src_w_stride]);
     });
