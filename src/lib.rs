@@ -5,7 +5,7 @@ mod stride;
 use dst_slices::DstSlices;
 use rayon::prelude::*;
 
-pub fn blit(
+pub fn blit_to_buffer(
     src: &[u8],
     dst: &mut [u8],
     dst_x: usize,
@@ -15,11 +15,16 @@ pub fn blit(
     stride: usize,
 ) {
     let src_h = (src.len() / stride) / src_w;
+    let mut dst = DstSlices::new(dst, dst_x, dst_y, dst_w, src_w, src_h, stride);
+    blit_to_slices(src, &mut dst, src_w, stride)
+}
+
+pub fn blit_to_slices<'d>(src: &[u8], dst: &'d mut DstSlices<'d>, src_w: usize, stride: usize) {
     let src_w_stride = stride * src_w;
 
-    DstSlices::new(dst, dst_x, dst_y, dst_w, src_w, src_h, stride)
-        .0
+    dst.slices()
         .into_par_iter()
+        .enumerate()
         .for_each(|(src_y, dst_slice)| {
             let src_index = to_index(0, src_y, src_w, stride);
             dst_slice.copy_from_slice(&src[src_index..src_index + src_w_stride]);
@@ -49,7 +54,7 @@ mod tests {
         let src = cast_slice::<[u8; RGB], u8>(&src);
         let dst = cast_slice_mut::<[u8; RGB], u8>(&mut dst);
 
-        blit(src, dst, 2, 12, DST_W, SRC_W, RGB);
+        blit_to_buffer(src, dst, 2, 12, DST_W, SRC_W, RGB);
 
         let path = Path::new("blit.png");
         let file = File::create(path).unwrap();
