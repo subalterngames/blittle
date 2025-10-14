@@ -141,7 +141,7 @@ pub fn get_dst_slices(
 /// `stride` is the per-pixel stride length.
 /// For example, an 8-bit RGB pixel has a stride length of 3 (3 channels, 1 byte per channel).
 /// See `crate::stride` for some common stride values.
-pub fn blit_to_slices<'d>(src: &[u8], dst: &'d mut DstSlices<'d>, src_w: usize, stride: usize) {
+pub fn blit_to_slices<'d>(src: &[u8], dst: &'d mut DstSlices, src_w: usize, stride: usize) {
     let src_w_stride = stride * src_w;
 
     #[cfg(feature = "rayon")]
