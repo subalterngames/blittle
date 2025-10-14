@@ -3,7 +3,7 @@
 version = 4
 
 [[package]]
-name = "blit-omega"
+name = "blittle"
 version = "0.1.0"
 dependencies = [
  "rayon",

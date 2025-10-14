@@ -1,3 +1,7 @@
+use std::fmt::{Display, Formatter};
+
+/// A destination rect.
+/// `(x, y)` is the top-left position of the `Rect`.
 pub struct Rect {
     pub x: usize,
     pub y: usize,
@@ -6,8 +10,18 @@ pub struct Rect {
 }
 
 impl Rect {
+    /// Converts `(x, y)` to a start index.
+    /// `stride` is the number of bytes per pixel.
+    /// For example, an RGB24 pixel (3 channels, 1 byte per channel) has a stride of 3.
+    /// See `crate::strides` for some stride constants.
     pub const fn get_start(&self, stride: usize) -> usize {
         (self.x + self.y * self.w) * stride
+    }
+}
+
+impl Display for Rect {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "[{}, {}, {}, {}]", self.x, self.y, self.w, self.h)
     }
 }
 
