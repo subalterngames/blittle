@@ -14,8 +14,10 @@ impl Rect {
     /// `stride` is the number of bytes per pixel.
     /// For example, an RGB24 pixel (3 channels, 1 byte per channel) has a stride of 3.
     /// See `crate::strides` for some stride constants.
-    pub const fn get_start(&self, stride: usize) -> usize {
-        (self.x + self.y * self.w) * stride
+    pub(crate) const fn get_line_indices(&self, stride: usize) -> (usize, usize) {
+        let start = (self.x + self.y * self.w) * stride;
+        let end = start + self.w * stride;
+        (start, end)
     }
 }
 
@@ -28,11 +30,10 @@ impl Display for Rect {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::stride::*;
     
     #[test]
     fn test_rect_start() {
-        const RGB: usize = 3;
-        const L: usize = 1;
         
         let mut r = Rect {
             x: 0,
@@ -40,14 +41,29 @@ mod tests {
             w: 64,
             h: 32
         };
-        assert_eq!(r.get_start(RGB), 0);
-        assert_eq!(r.get_start(L), 0);
+        let (start, end) = r.get_line_indices(GRAYSCALE);
+        assert_eq!(start, 0);
+        assert_eq!(end, r.w);
+        let (start, end) = r.get_line_indices(RGB);
+        assert_eq!(start, 0);
+        assert_eq!(end, r.w * 3);
+
         r.x = 1;
-        assert_eq!(r.get_start(RGB), 3);
-        assert_eq!(r.get_start(L), 1);
+        let (start, end) = r.get_line_indices(GRAYSCALE);
+        assert_eq!(start, 1);
+        assert_eq!(end, r.w + 1);
+        let (start, end) = r.get_line_indices(RGB);
+        assert_eq!(start, 3);
+        assert_eq!(end, (r.w + 1) * 3);
+        
+
         r.x = 3;
         r.y = 2;
-        assert_eq!(r.get_start(RGB), 393);
-        assert_eq!(r.get_start(L), 131);
+        let (start, end) = r.get_line_indices(GRAYSCALE);
+        assert_eq!(start, 131);
+        assert_eq!(end, 131 + r.w);
+        let (start, end) = r.get_line_indices(RGB);
+        assert_eq!(start, 393);
+        assert_eq!(end, 393 + r.w * 3);
     }
 }
