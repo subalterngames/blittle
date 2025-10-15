@@ -8,12 +8,12 @@ use sdl2::{
 };
 
 pub fn criterion_benchmark(c: &mut Criterion) {
-    const SRC_W: usize = 32;
-    const SRC_H: usize = 17;
-    const DST_W: usize = 64;
-    const DST_H: usize = 64;
-    let src_map = [[255u8, 0, 0, 0]; SRC_W * SRC_H];
-    let mut dst_map = [[0u8, 0, 255, 0]; DST_W * DST_H];
+    const SRC_W: usize = 512;
+    const SRC_H: usize = 512;
+    const DST_W: usize = 1920;
+    const DST_H: usize = 1080;
+    let src_map = vec![[255u8, 0, 0, 0]; SRC_W * SRC_H];
+    let mut dst_map = vec![[0u8, 0, 255, 0]; DST_W * DST_H];
 
     let dst_position = Position { x: 2, y: 12 };
     let dst_size = blittle::Size { w: DST_W, h: DST_H };
