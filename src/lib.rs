@@ -103,7 +103,7 @@ mod tests {
 
     #[test]
     fn test_clip() {
-        blit_clipped("clip_positive.png", 16, 16);
+        blit_clipped("clip_positive.png", 42, 16);
         blit_clipped("clip_negative.png", -8, -8);
     }
 
