@@ -162,6 +162,14 @@ pub fn blit_to_slices(src: &[u8], dst: &mut DstSlices, src_w: usize, stride: usi
     });
 }
 
+/// Clip the width and height to be within the bounds of `other`.
+pub fn clip(dst_position: &Position, dst_size: &Size, src_size: &mut Size) {
+    if dst_position.is_inside(dst_size) {
+        src_size.w = src_size.w.min(dst_size.w - dst_position.x);
+        src_size.h = src_size.h.min(dst_size.h - dst_position.y);
+    }
+}
+
 const fn to_index(x: usize, y: usize, w: usize, stride: usize) -> usize {
     (x + y * w) * stride
 }
@@ -208,7 +216,7 @@ mod tests {
         let dst_position = Position { x: 16, y: 16 };
         let dst_size = Size { w: DST_W, h: DST_H };
         let mut src_size = Size { w: SRC_W, h: SRC_H };
-        src_size.clip(&dst_size);
+        clip(&dst_position, &dst_size, &mut src_size);
 
         blit_to_buffer(src, dst, &dst_position, &dst_size, &src_size, RGB);
         save_png("clip.png", dst, DST_W as u32, DST_H as u32);
