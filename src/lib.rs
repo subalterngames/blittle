@@ -27,7 +27,7 @@
 //! let dst_size = Size { w: dst_w, h: dst_h };
 //!
 //! // Blit `src` onto `dst`.
-//! blit_to_buffer(&src, &mut dst, &dst_position, &dst_size, &src_size, RGB);
+//! blit_to_buffer(&src, &src_size, &mut dst, &dst_position, &dst_size, RGB);
 //! ```
 //!
 //! ## Clipping
@@ -63,12 +63,12 @@
 //! let dst_size = Size { w: dst_w, h: dst_h };
 //!
 //! // Convert `dst` into predefined slices.
-//! let mut dst_slices = get_dst_slices(&mut dst, &dst_position, &dst_size, &src_size, RGB).unwrap();
+//! let mut dst_slices = get_dst_slices(&src_size, &mut dst, &dst_position, &dst_size, RGB).unwrap();
 //!
 //! // Blit `src` onto `dst`.
 //! // In an animation, the content of `src` would change every iteration.
 //! for _ in 0..100 {
-//!     blit_to_slices(&src, &mut dst_slices, &src_size, RGB);
+//!     blit_to_slices(&src, &src_size, &mut dst_slices, RGB);
 //! }
 //! ```
 
@@ -97,15 +97,15 @@ pub type DstSlices<'b> = Vec<&'b mut [u8]>;
 /// consider using [`bit_to_slices`], which recycles the [`DstSlices`] and is therefore faster.
 pub fn blit_to_buffer(
     src: &[u8],
+    src_size: &Size,
     dst: &mut [u8],
     dst_position: &Position,
     dst_size: &Size,
-    src_size: &Size,
     stride: usize,
 ) -> bool {
-    match get_dst_slices(dst, dst_position, dst_size, src_size, stride) {
+    match get_dst_slices(src_size, dst, dst_position, dst_size, stride) {
         Some(mut dst) => {
-            blit_to_slices(src, &mut dst, src_size, stride);
+            blit_to_slices(src, src_size, &mut dst, stride);
             true
         }
         None => false,
@@ -123,10 +123,10 @@ pub fn blit_to_buffer(
 /// - `dst_size` and `src_size` are the [`Size`]'s of the destination and source images, respectively.
 /// - `stride` is the per-pixel stride length. See `crate::stride` for some common stride values.
 pub fn get_dst_slices<'d>(
+    src_size: &Size,
     dst: &'d mut [u8],
     dst_position: &Position,
     dst_size: &Size,
-    src_size: &Size,
     stride: usize,
 ) -> Option<DstSlices<'d>> {
     if dst_position.is_inside(dst_size) {
@@ -150,7 +150,7 @@ pub fn get_dst_slices<'d>(
 ///
 /// - `src_size` is the [`Size`] of the source image.
 /// - `stride` is the per-pixel stride length. See `crate::stride` for some common stride values.
-pub fn blit_to_slices(src: &[u8], dst: &mut DstSlices, src_size: &Size, stride: usize) {
+pub fn blit_to_slices(src: &[u8], src_size: &Size, dst: &mut DstSlices, stride: usize) {
     let src_w_stride = stride * src_size.w;
 
     dst.iter_mut().enumerate().for_each(|(src_y, dst_slice)| {
@@ -196,7 +196,7 @@ mod tests {
         let dst_size = Size { w: DST_W, h: DST_H };
         let src_size = Size { w: SRC_W, h: SRC_H };
 
-        blit_to_buffer(src, dst, &dst_position, &dst_size, &src_size, RGB);
+        blit_to_buffer(src, &src_size, dst, &dst_position, &dst_size, RGB);
 
         save_png("blit.png", dst, DST_W as u32, DST_H as u32);
     }
@@ -217,7 +217,7 @@ mod tests {
         let mut src_size = Size { w: SRC_W, h: SRC_H };
         clip(&dst_position, &dst_size, &mut src_size);
 
-        blit_to_buffer(src, dst, &dst_position, &dst_size, &src_size, RGB);
+        blit_to_buffer(src, &src_size, dst, &dst_position, &dst_size, RGB);
         save_png("clip.png", dst, DST_W as u32, DST_H as u32);
     }
 

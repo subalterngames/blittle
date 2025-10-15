@@ -22,13 +22,13 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     let src = cast_slice::<[u8; RGBA], u8>(&src_map);
     let mut dst = cast_slice_mut::<[u8; RGBA], u8>(&mut dst_map);
     c.bench_function("blittle_buffer", |b| {
-        b.iter(|| blit_to_buffer(&src, &mut dst, &dst_position, &dst_size, &src_size, RGBA))
+        b.iter(|| blit_to_buffer(&src, &src_size, &mut dst, &dst_position, &dst_size, RGBA))
     });
 
     let mut dst_slices =
-        get_dst_slices(&mut dst, &dst_position, &dst_size, &src_size, RGBA).unwrap();
+        get_dst_slices(&src_size, &mut dst, &dst_position, &dst_size, RGBA).unwrap();
     c.bench_function("blittle_slices", |b| {
-        b.iter(|| blit_to_slices(&src, &mut dst_slices, &src_size, RGBA))
+        b.iter(|| blit_to_slices(&src, &src_size, &mut dst_slices, RGBA))
     });
 
     // `blit` crate.
