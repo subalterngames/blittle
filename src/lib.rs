@@ -162,7 +162,7 @@ pub fn blit_to_slices(src: &[u8], dst: &mut DstSlices, src_w: usize, stride: usi
     });
 }
 
-/// Clip the width and height to be within the bounds of `other`.
+/// Clip `src_size` such that it fits within the rectangle defined by `dst_position` and `dst_size`.
 pub fn clip(dst_position: &Position, dst_size: &Size, src_size: &mut Size) {
     if dst_position.is_inside(dst_size) {
         src_size.w = src_size.w.min(dst_size.w - dst_position.x);
