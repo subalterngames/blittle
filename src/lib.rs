@@ -136,7 +136,7 @@ pub fn get_dst_slices<'d>(
             (0..src_size.h)
                 .map(|src_y| unsafe {
                     let dst_index =
-                        to_index(dst_position.x, dst_position.y + src_y, dst_size.w, stride);
+                        get_index(dst_position.x, dst_position.y + src_y, dst_size.w, stride);
                     from_raw_parts_mut(ptr.add(dst_index), src_w_stride)
                 })
                 .collect::<Vec<&mut [u8]>>(),
@@ -154,7 +154,7 @@ pub fn blit_to_slices(src: &[u8], src_size: &Size, dst: &mut DstSlices, stride: 
     let src_w_stride = stride * src_size.w;
 
     dst.iter_mut().enumerate().for_each(|(src_y, dst_slice)| {
-        let src_index = to_index(0, src_y, src_size.w, stride);
+        let src_index = get_index(0, src_y, src_size.w, stride);
         dst_slice.copy_from_slice(&src[src_index..src_index + src_w_stride]);
     });
 }
@@ -170,7 +170,7 @@ pub fn clip(dst_position: &Position, dst_size: &Size, src_size: &mut Size) {
 }
 
 /// Converts a position, width, and stride to an index in a 1D byte slice.
-pub const fn to_index(x: usize, y: usize, w: usize, stride: usize) -> usize {
+pub const fn get_index(x: usize, y: usize, w: usize, stride: usize) -> usize {
     (x + y * w) * stride
 }
 
