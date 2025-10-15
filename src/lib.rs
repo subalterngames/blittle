@@ -4,7 +4,7 @@ mod position;
 mod size;
 pub mod stride;
 
-pub use position::Position;
+pub use position::*;
 pub use size::Size;
 
 /// Blit `src` onto `dst`.
@@ -18,11 +18,11 @@ pub fn blit(
     src: &[u8],
     src_size: &Size,
     dst: &mut [u8],
-    dst_position: &Position,
+    dst_position: &PositionU,
     dst_size: &Size,
     stride: usize,
 ) -> bool {
-    if dst_position.is_inside(&dst_size) {
+    if dst_position.is_inside(dst_size) {
         let src_w_stride = src_size.w * stride;
         (0..src_size.h).for_each(|src_y| {
             let src_index = get_index(0, src_y, src_size.w, stride);
@@ -37,12 +37,37 @@ pub fn blit(
 }
 
 /// Clip `src_size` such that it fits within the rectangle defined by `dst_position` and `dst_size`.
-pub fn clip(dst_position: &Position, dst_size: &Size, src_size: &mut Size) {
-    // This allows us to do unchecked subtraction.
-    // The `blit` methods will also check `is_inside`.
-    if dst_position.is_inside(dst_size) {
-        src_size.w = src_size.w.min(dst_size.w - dst_position.x);
-        src_size.h = src_size.h.min(dst_size.h - dst_position.y);
+/// Returns `dst_position` as a clipped `PositionU` that can be used in [`blit`].
+pub fn clip(dst_position: &PositionI, dst_size: &Size, src_size: &mut Size) -> PositionU {
+    // Check if the source image is totally out of bounds.
+    if dst_position.x + (src_size.w as isize) < 0 || dst_position.y + (src_size.h as isize) < 0 {
+        src_size.w = 0;
+        src_size.h = 0;
+        PositionU::default()
+    } else {
+        let mut x = 0;
+        if dst_position.x < 0 {
+            src_size.w = src_size.w.saturating_sub(dst_position.x.unsigned_abs());
+        } else {
+            x = dst_position.x.unsigned_abs();
+        }
+        let mut y = 0;
+        if dst_position.y < 0 {
+            src_size.h = src_size.h.saturating_sub(dst_position.y.unsigned_abs());
+        } else {
+            y = dst_position.y.unsigned_abs();
+        }
+        let dst_position = PositionU { x, y };
+        // This allows us to do unchecked subtraction.
+        // The `blit` methods will also check `is_inside`.
+        if dst_position.is_inside(dst_size) {
+            src_size.w = src_size.w.min(dst_size.w - dst_position.x);
+            src_size.h = src_size.h.min(dst_size.h - dst_position.y);
+            dst_position
+        } else {
+            *src_size = Size::default();
+            PositionU::default()
+        }
     }
 }
 
@@ -55,48 +80,44 @@ pub const fn get_index(x: usize, y: usize, w: usize, stride: usize) -> usize {
 mod tests {
     use super::*;
     use crate::stride::RGB;
-    use bytemuck::{cast_slice, cast_slice_mut};
     use std::{fs::File, io::BufWriter, path::Path};
+
+    const SRC_W: usize = 32;
+    const SRC_H: usize = 17;
+    const DST_W: usize = 64;
+    const DST_H: usize = 64;
 
     #[test]
     fn test_blit() {
-        const SRC_W: usize = 32;
-        const SRC_H: usize = 17;
-        const DST_W: usize = 64;
-        const DST_H: usize = 64;
-        let src = [[255u8, 0, 0]; SRC_W * SRC_H];
-        let mut dst = [[0u8, 0, 255]; DST_W * DST_H];
+        let src = [255u8; SRC_W * SRC_H * RGB];
+        let mut dst = [0u8; DST_W * DST_H * RGB];
 
-        let src = cast_slice::<[u8; RGB], u8>(&src);
-        let dst = cast_slice_mut::<[u8; RGB], u8>(&mut dst);
-
-        let dst_position = Position { x: 2, y: 12 };
+        let dst_position = PositionU { x: 2, y: 12 };
         let dst_size = Size { w: DST_W, h: DST_H };
         let src_size = Size { w: SRC_W, h: SRC_H };
 
-        blit(src, &src_size, dst, &dst_position, &dst_size, RGB);
+        blit(&src, &src_size, &mut dst, &dst_position, &dst_size, RGB);
 
-        save_png("blit.png", dst, DST_W as u32, DST_H as u32);
+        save_png("blit.png", &dst, DST_W as u32, DST_H as u32);
     }
 
     #[test]
     fn test_clip() {
-        const SRC_W: usize = 64;
-        const SRC_H: usize = 128;
-        const DST_W: usize = 32;
-        const DST_H: usize = 32;
-        let src = [[255u8, 0, 0]; SRC_W * SRC_H];
-        let mut dst = [[0u8, 0, 255]; DST_W * DST_H];
-        let src = cast_slice::<[u8; RGB], u8>(&src);
-        let dst = cast_slice_mut::<[u8; RGB], u8>(&mut dst);
+        blit_clipped("clip_positive.png", 16, 16);
+        blit_clipped("clip_negative.png", -8, -8);
+    }
 
-        let dst_position = Position { x: 16, y: 16 };
+    fn blit_clipped(name: &str, x: isize, y: isize) {
+        let src = [255u8; SRC_W * SRC_H * RGB];
+        let mut dst = [0u8; DST_W * DST_H * RGB];
+
+        let dst_position = PositionI { x, y };
         let dst_size = Size { w: DST_W, h: DST_H };
         let mut src_size = Size { w: SRC_W, h: SRC_H };
-        clip(&dst_position, &dst_size, &mut src_size);
+        let dst_position = clip(&dst_position, &dst_size, &mut src_size);
 
-        blit(src, &src_size, dst, &dst_position, &dst_size, RGB);
-        save_png("clip.png", dst, DST_W as u32, DST_H as u32);
+        blit(&src, &src_size, &mut dst, &dst_position, &dst_size, RGB);
+        save_png(name, &dst, DST_W as u32, DST_H as u32);
     }
 
     fn save_png(path: &str, dst: &[u8], dst_w: u32, dst_h: u32) {

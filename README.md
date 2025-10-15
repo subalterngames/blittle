@@ -18,7 +18,7 @@ let dst_h = 64;
 // Another raw image bitmap.
 let mut dst = vec![0u8; dst_w * dst_h * RGB];
 // The top-left position of where `src` will appear on `dst`.
-let dst_position = Position { x: 2, y: 12 };
+let dst_position = PositionU { x: 2, y: 12 };
 let dst_size = Size { w: dst_w, h: dst_h };
 
 // Blit `src` onto `dst`.

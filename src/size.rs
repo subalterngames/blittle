@@ -1,5 +1,5 @@
 /// Rectangular bounds defined by a width and height.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Default)]
 pub struct Size {
     pub w: usize,
     pub h: usize,

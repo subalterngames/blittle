@@ -69,11 +69,8 @@ name = "blittle"
 version = "0.1.0"
 dependencies = [
  "blit",
- "bytemuck",
  "criterion",
- "memx",
  "png 0.18.0",
- "rayon",
  "sdl2",
 ]
 
@@ -164,15 +161,6 @@ name = "color_quant"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3d7b894f5411737b7867f4827955924d7c254fc9f4d91a6aad6b097804b1018b"
-
-[[package]]
-name = "cpufeatures"
-version = "0.2.17"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "59ed5838eebb26a2bb2e58f6d5b5316989ae9d08bab10e0e6d103e656d1b0280"
-dependencies = [
- "libc",
-]
 
 [[package]]
 name = "crc32fast"
@@ -389,16 +377,6 @@ name = "memchr"
 version = "2.7.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f52b00d39961fc5b2736ea853c9cc86238e165017a493d1d5c8eac6bdc4cc273"
-
-[[package]]
-name = "memx"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3dcdf911804d2b5f4a00e92f383ad5d734dde91ea338e823c3abd4a29b930dfe"
-dependencies = [
- "cpufeatures",
- "rustversion",
-]
 
 [[package]]
 name = "miniz_oxide"
