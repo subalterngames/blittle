@@ -2,6 +2,13 @@
 name = "blittle"
 version = "0.1.0"
 edition = "2024"
+description = "A fast little blitter"
+authors = ["Esther Alter <subalterngames@gmail.com>"]
+readme = "README.md"
+repository = "https://github.com/subalterngames/blittle"
+license-file = "LICENSE"
+keywords = ["blitting", "image", "sprite", "gamedev", "graphics"]
+categories = ["game-development", "graphics", "rendering"]
 
 [dependencies]
 
