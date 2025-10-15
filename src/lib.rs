@@ -11,7 +11,7 @@
 //! Note that in all cases, `src` and `dst` are slices of raw bitmaps, *not* png/jpg/etc. data.
 //!
 //! ```
-//! use blittle::{blit_to_buffer, Position, Size, stride::RGB};
+//! use blittle::{*, stride::RGB};
 //!
 //! // The dimensions and byte data of the source image.
 //! let src_w = 32;
@@ -29,14 +29,20 @@
 //! // Blit `src` onto `dst`.
 //! blit_to_buffer(&src, &mut dst, &dst_position, &dst_size, &src_size, RGB);
 //! ```
+//! 
+//! ## Clipping
 //!
-//! `blittle` has one additional means of making blitting faster:
+//! By default, `blittle` won't check whether your source image exceeds the bounds of the 
+//! destination image. This will cause your program to crash with a very opaque memory error.
+//! 
+//! To trim the source image's blittable region, call [`clip`].
+//! 
+//! ## Blit slices
 //!
 //! In `blit_to_buffer`, `dst` is divided into per-row slices.
 //! Each row of `src` blits onto each of those slices.
 //! Internally, [`blit_to_buffer`] calls [`get_blit_slices`]
-//! If you know that you're going to blit `src` to `dst` repeatedly
-//! (for example, during an animation),
+//! If you know that you're going to blit `src` to `dst` repeatedly (e.g. during an animation),
 //! you should instead use [`get_blit_slices`] and [`blit_to_slices`],
 //! thereby reusing the destination slices.
 //!
@@ -164,6 +170,8 @@ pub fn blit_to_slices(src: &[u8], dst: &mut DstSlices, src_w: usize, stride: usi
 
 /// Clip `src_size` such that it fits within the rectangle defined by `dst_position` and `dst_size`.
 pub fn clip(dst_position: &Position, dst_size: &Size, src_size: &mut Size) {
+    // This allows us to do unchecked subtraction.
+    // The `blit` methods will also check `is_inside`.
     if dst_position.is_inside(dst_size) {
         src_size.w = src_size.w.min(dst_size.w - dst_position.x);
         src_size.h = src_size.h.min(dst_size.h - dst_position.y);
