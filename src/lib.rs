@@ -71,9 +71,9 @@
 //!     blit_to_slices(&src, &src_size, &mut dst_slices, RGB);
 //! }
 //! ```
-//! 
+//!
 //! ## Benchmarks
-//! 
+//!
 //! Run `cargo bench` and find out.
 
 mod position;
@@ -107,12 +107,17 @@ pub fn blit_to_buffer(
     dst_size: &Size,
     stride: usize,
 ) -> bool {
-    match get_dst_slices(src_size, dst, dst_position, dst_size, stride) {
-        Some(mut dst) => {
-            blit_to_slices(src, src_size, &mut dst, stride);
-            true
-        }
-        None => false,
+    if dst_position.is_inside(&dst_size) {
+        let src_w_stride = src_size.w * stride;
+        (0..src_size.h).for_each(|src_y| {
+            let src_index = get_index(0, src_y, src_size.w, stride);
+            let dst_index = get_index(dst_position.x, dst_position.y + src_y, dst_size.w, stride);
+            dst[dst_index..dst_index + src_w_stride]
+                .copy_from_slice(&src[src_index..src_index + src_w_stride]);
+        });
+        true
+    } else {
+        false
     }
 }
 
