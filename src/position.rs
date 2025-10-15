@@ -1,5 +1,6 @@
 use crate::Size;
 
+/// An `(x, y)` pixel position.
 #[derive(Copy, Clone, Default)]
 pub struct Position {
     pub x: usize,
