@@ -28,7 +28,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     let mut dst_slices =
         get_dst_slices(&mut dst, &dst_position, &dst_size, &src_size, RGBA).unwrap();
     c.bench_function("blittle_slices", |b| {
-        b.iter(|| blit_to_slices(&src, &mut dst_slices, SRC_W, RGBA))
+        b.iter(|| blit_to_slices(&src, &mut dst_slices, &src_size, RGBA))
     });
 
     // `blit` crate.

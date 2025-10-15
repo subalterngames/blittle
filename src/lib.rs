@@ -29,14 +29,14 @@
 //! // Blit `src` onto `dst`.
 //! blit_to_buffer(&src, &mut dst, &dst_position, &dst_size, &src_size, RGB);
 //! ```
-//! 
+//!
 //! ## Clipping
 //!
-//! By default, `blittle` won't check whether your source image exceeds the bounds of the 
+//! By default, `blittle` won't check whether your source image exceeds the bounds of the
 //! destination image. This will cause your program to crash with a very opaque memory error.
-//! 
+//!
 //! To trim the source image's blittable region, call [`clip`].
-//! 
+//!
 //! ## Blit slices
 //!
 //! In `blit_to_buffer`, `dst` is divided into per-row slices.
@@ -68,7 +68,7 @@
 //! // Blit `src` onto `dst`.
 //! // In an animation, the content of `src` would change every iteration.
 //! for _ in 0..100 {
-//!     blit_to_slices(&src, &mut dst_slices, src_w, RGB);
+//!     blit_to_slices(&src, &mut dst_slices, &src_size, RGB);
 //! }
 //! ```
 
@@ -83,15 +83,13 @@ use std::slice::from_raw_parts_mut;
 /// A vec of slices of a `dst` vec. See: [`get_dst_slices`]
 pub type DstSlices<'b> = Vec<&'b mut [u8]>;
 
-/// Blit `src` onto `dst` starting at the top-left position of `(dst_x, dst_y)`.
+/// Blit `src` onto `dst`.
 /// `src` and `dst` are flat byte slices of images.
 /// There are many ways to cast your pixel map to `[u8]`, such as with the `bytemuck` crate.
 ///
-/// `dst_w` and `src_w` are the width of the `src` image and `dst` image, respectively.
-///
-/// `stride` is the per-pixel stride length.
-/// For example, an 8-bit RGB pixel has a stride length of 3 (3 channels, 1 byte per channel).
-/// See `crate::stride` for some common stride values.
+/// - `dst_position` is the top-left position of the region that `src` will blit onto.
+/// - `dst_size` and `src_size` are the [`Size`]'s of the destination and source images, respectively.
+/// - `stride` is the per-pixel stride length. See `crate::stride` for some common stride values.
 ///
 /// Internally, this crates a [`DstSlices`] from `dst`.
 /// If you want to repeatedly blit a pixel map the same size as `src` to the same destination region,
@@ -107,7 +105,7 @@ pub fn blit_to_buffer(
 ) -> bool {
     match get_dst_slices(dst, dst_position, dst_size, src_size, stride) {
         Some(mut dst) => {
-            blit_to_slices(src, &mut dst, src_size.w, stride);
+            blit_to_slices(src, &mut dst, src_size, stride);
             true
         }
         None => false,
@@ -121,13 +119,9 @@ pub fn blit_to_buffer(
 /// Recycling the same [`DstSlices`] is faster than recreating them,
 /// which is what [`blit_to_buffer`] does.
 ///
-/// The top-left position of the blittable region is `(dst_x, dst_y)`.
-/// The width of the `dst` image is `dst_w`.
-/// The width and height of the `src` image is `(src_w, src_h)`.
-///
-/// `stride` is the per-pixel stride length.
-/// For example, an 8-bit RGB pixel has a stride length of 3 (3 channels, 1 byte per channel).
-/// See `crate::stride` for some common stride values.
+/// - `dst_position` is the top-left position of the region that `src` will blit onto.
+/// - `dst_size` and `src_size` are the [`Size`]'s of the destination and source images, respectively.
+/// - `stride` is the per-pixel stride length. See `crate::stride` for some common stride values.
 pub fn get_dst_slices<'d>(
     dst: &'d mut [u8],
     dst_position: &Position,
@@ -154,16 +148,13 @@ pub fn get_dst_slices<'d>(
 
 /// Blit `src` onto `dst`. To create `dst`, see: [`get_dst_slices`].
 ///
-/// `src_w` is the width of the `src` image.
-///
-/// `stride` is the per-pixel stride length.
-/// For example, an 8-bit RGB pixel has a stride length of 3 (3 channels, 1 byte per channel).
-/// See `crate::stride` for some common stride values.
-pub fn blit_to_slices(src: &[u8], dst: &mut DstSlices, src_w: usize, stride: usize) {
-    let src_w_stride = stride * src_w;
+/// - `src_size` is the [`Size`] of the source image.
+/// - `stride` is the per-pixel stride length. See `crate::stride` for some common stride values.
+pub fn blit_to_slices(src: &[u8], dst: &mut DstSlices, src_size: &Size, stride: usize) {
+    let src_w_stride = stride * src_size.w;
 
     dst.iter_mut().enumerate().for_each(|(src_y, dst_slice)| {
-        let src_index = to_index(0, src_y, src_w, stride);
+        let src_index = to_index(0, src_y, src_size.w, stride);
         dst_slice.copy_from_slice(&src[src_index..src_index + src_w_stride]);
     });
 }
