@@ -184,15 +184,8 @@ mod tests {
         let dst = cast_slice_mut::<[u8; RGB], u8>(&mut dst);
 
         blit_to_buffer(src, dst, 2, 12, DST_W, SRC_W, RGB);
-
-        let path = Path::new("blit.png");
-        let file = File::create(path).unwrap();
-        let w = BufWriter::new(file);
-        let mut encoder = png::Encoder::new(w, DST_W as u32, DST_H as u32);
-        encoder.set_color(png::ColorType::Rgb);
-        encoder.set_depth(png::BitDepth::Eight);
-        let mut writer = encoder.write_header().unwrap();
-        writer.write_image_data(&dst).unwrap();
+        
+        save_png("blit.png", dst, DST_W as u32, DST_H as u32);
     }
 
     #[test]
@@ -206,5 +199,35 @@ mod tests {
         assert_eq!(dst_x, dst_w);
         assert_eq!(dst_y, 0);
         assert_eq!(src_w, 32);
+    }
+    
+    #[test]
+    fn test_clip_blit() {
+        const SRC_W: usize = 64;
+        const SRC_H: usize = 128;
+        const DST_W: usize = 32;
+        const DST_H: usize = 32;
+        let src = [[255u8, 0, 0]; SRC_W * SRC_H];
+        let mut dst = [[0u8, 0, 255]; DST_W * DST_H];
+        let src = cast_slice::<[u8; RGB], u8>(&src);
+        let dst = cast_slice_mut::<[u8; RGB], u8>(&mut dst);
+        
+        let mut dst_x = 16;
+        let mut dst_y = 16;
+        let mut src_w = SRC_W;
+        clip(&dst, &mut dst_x, &mut dst_y, DST_W, &mut src_w, RGB);
+        blit_to_buffer(src, dst, dst_x, dst_y, DST_W, src_w, RGB);
+        save_png("clip.png", dst, DST_W as u32, DST_H as u32);
+    }
+    
+    fn save_png(path: &str, dst: &[u8], dst_w: u32, dst_h: u32) {
+        let path = Path::new(path);
+        let file = File::create(path).unwrap();
+        let w = BufWriter::new(file);
+        let mut encoder = png::Encoder::new(w, dst_w, dst_h);
+        encoder.set_color(png::ColorType::Rgb);
+        encoder.set_depth(png::BitDepth::Eight);
+        let mut writer = encoder.write_header().unwrap();
+        writer.write_image_data(dst).unwrap();
     }
 }
