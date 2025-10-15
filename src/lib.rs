@@ -84,9 +84,9 @@ use std::slice::from_raw_parts_mut;
 pub type DstSlices<'b> = Vec<&'b mut [u8]>;
 
 /// Blit `src` onto `dst`.
-/// `src` and `dst` are flat byte slices of images.
-/// There are many ways to cast your pixel map to `[u8]`, such as with the `bytemuck` crate.
+/// Returns true if the blit was successful (i.e. if `dst_position` is within the bounds of `dst_size`).
 ///
+/// - `src` and `dst` are flat byte slices of images. There are many ways to cast your pixel map to `[u8]`, such as with the `bytemuck` crate.
 /// - `dst_position` is the top-left position of the region that `src` will blit onto.
 /// - `dst_size` and `src_size` are the [`Size`]'s of the destination and source images, respectively.
 /// - `stride` is the per-pixel stride length. See `crate::stride` for some common stride values.
@@ -119,6 +119,7 @@ pub fn blit_to_buffer(
 /// Recycling the same [`DstSlices`] is faster than recreating them,
 /// which is what [`blit_to_buffer`] does.
 ///
+/// - `src` and `dst` are flat byte slices of images. There are many ways to cast your pixel map to `[u8]`, such as with the `bytemuck` crate.
 /// - `dst_position` is the top-left position of the region that `src` will blit onto.
 /// - `dst_size` and `src_size` are the [`Size`]'s of the destination and source images, respectively.
 /// - `stride` is the per-pixel stride length. See `crate::stride` for some common stride values.
