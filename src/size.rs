@@ -6,7 +6,7 @@ pub struct Size {
 }
 
 impl Size {
-    pub fn new(buffer: &[u8], w: usize, stride: usize) -> Self {
+    pub const fn new(buffer: &[u8], w: usize, stride: usize) -> Self {
         let h = (buffer.len() / stride) / w;
         Self { w, h }
     }
