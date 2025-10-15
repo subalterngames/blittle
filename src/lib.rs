@@ -169,7 +169,8 @@ pub fn clip(dst_position: &Position, dst_size: &Size, src_size: &mut Size) {
     }
 }
 
-const fn to_index(x: usize, y: usize, w: usize, stride: usize) -> usize {
+/// Converts a position, width, and stride to an index in a 1D byte slice.
+pub const fn to_index(x: usize, y: usize, w: usize, stride: usize) -> usize {
     (x + y * w) * stride
 }
 
