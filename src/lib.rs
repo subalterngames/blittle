@@ -132,9 +132,8 @@ pub fn get_dst_slices<'d>(
     if dst_position.is_inside(dst_size) {
         let ptr = dst.as_mut_ptr();
         let src_w_stride = src_size.w * stride;
-        let src_h = src_size.h.min((dst.len() / stride) / dst_size.w);
         Some(
-            (0..src_h)
+            (0..src_size.h)
                 .map(|src_y| unsafe {
                     let dst_index =
                         to_index(dst_position.x, dst_position.y + src_y, dst_size.w, stride);
