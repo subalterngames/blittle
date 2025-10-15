@@ -8,7 +8,6 @@ pub use position::*;
 pub use size::Size;
 
 /// Blit `src` onto `dst`.
-/// Returns true if the blit was successful (i.e. if `dst_position` is within the bounds of `dst_size`).
 ///
 /// - `src` and `dst` are flat byte slices of images. There are many ways to cast your pixel map to `[u8]`, such as with the `bytemuck` crate.
 /// - `dst_position` is the top-left position of the region that `src` will blit onto.
@@ -21,8 +20,8 @@ pub fn blit(
     dst_position: &PositionU,
     dst_size: &Size,
     stride: usize,
-) -> bool {
-    if dst_position.is_inside(dst_size) {
+) {
+    if src_size.w > 0 && src_size.h > 0 {
         let src_w_stride = src_size.w * stride;
         (0..src_size.h).for_each(|src_y| {
             let src_index = get_index(0, src_y, src_size.w, stride);
@@ -30,9 +29,6 @@ pub fn blit(
             dst[dst_index..dst_index + src_w_stride]
                 .copy_from_slice(&src[src_index..src_index + src_w_stride]);
         });
-        true
-    } else {
-        false
     }
 }
 
@@ -60,7 +56,7 @@ pub fn clip(dst_position: &PositionI, dst_size: &Size, src_size: &mut Size) -> P
         let dst_position = PositionU { x, y };
         // This allows us to do unchecked subtraction.
         // The `blit` methods will also check `is_inside`.
-        if dst_position.is_inside(dst_size) {
+        if dst_position.x < dst_size.w && dst_position.y < dst_size.h {
             src_size.w = src_size.w.min(dst_size.w - dst_position.x);
             src_size.h = src_size.h.min(dst_size.h - dst_position.y);
             dst_position
