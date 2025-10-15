@@ -34,7 +34,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     // `blit` crate.
     let mut dst_buffer = [0u32; DST_W * DST_H];
     let src_u32 = cast_slice::<[u8; 4], u32>(&src_map);
-    let blit_buffer = BlitBuffer::from_buffer(src_u32, SRC_W, 255);
+    let blit_buffer = BlitBuffer::from_buffer(src_u32, SRC_W, 0);
     let position = BlitOptions::new_position(dst_position.x, dst_position.y);
     let size = Size {
         width: DST_W as u32,

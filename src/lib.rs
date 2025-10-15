@@ -71,6 +71,10 @@
 //!     blit_to_slices(&src, &src_size, &mut dst_slices, RGB);
 //! }
 //! ```
+//! 
+//! ## Benchmarks
+//! 
+//! Run `cargo bench` and find out.
 
 mod position;
 mod size;
