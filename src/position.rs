@@ -1,5 +1,3 @@
-use crate::Size;
-
 /// A signed `(x, y)` pixel position.
 pub struct PositionI {
     pub x: isize,
