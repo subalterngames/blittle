@@ -1,6 +1,5 @@
 #![doc = include_str!("../README.md")]
 
-// #[cfg(feature = "rayon")]
 mod multi_threaded;
 mod position;
 mod size;

@@ -13,13 +13,12 @@ pub enum ThreadedBlitParams {
     NumChunks(usize),
 }
 
-
 impl ThreadedBlitParams {
     pub fn get_chunk_size(self, height: usize) -> usize {
         match self {
             Self::ChunkSize(size) => size,
             Self::NumThreads(num) => height / num.min(max_num_threads()),
-            Self::NumChunks(num) => height / num
+            Self::NumChunks(num) => height / num,
         }
     }
 }
