@@ -23,39 +23,11 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     });
 
     // Multi-thread.
-    // #[cfg(feature = "rayon")]
+    #[cfg(feature = "rayon")]
     {
-        c.bench_function("blittle multi-threaded (chunk size 128)", |b| {
-            b.iter(|| {
-                blit_multi_threaded_ex(
-                    &src,
-                    &src_size,
-                    &mut dst,
-                    &dst_position,
-                    &dst_size,
-                    RGBA,
-                    &ThreadedBlitParams::ChunkSize(128),
-                )
-            })
-        });
-
-        c.bench_function("blittle multi-threaded (chunk size 256)", |b| {
-            b.iter(|| {
-                blit_multi_threaded_ex(
-                    &src,
-                    &src_size,
-                    &mut dst,
-                    &dst_position,
-                    &dst_size,
-                    RGBA,
-                    &ThreadedBlitParams::ChunkSize(256),
-                )
-            })
-        });
-
-        let chunk_size = ThreadedBlitParams::NumThreads(4).get_chunk_size(src_size.h);
+        let chunk_size = ThreadedBlitParams::NumThreads(16).get_chunk_size(src_size.h);
         let params = ThreadedBlitParams::ChunkSize(chunk_size);
-        c.bench_function("blittle multi-threaded (4 threads)", |b| {
+        c.bench_function("blittle multi-threaded", |b| {
             b.iter(|| {
                 blit_multi_threaded_ex(
                     &src,
