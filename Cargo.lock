@@ -71,6 +71,7 @@ dependencies = [
  "blit",
  "criterion",
  "png 0.18.0",
+ "rayon",
  "sdl2",
 ]
 

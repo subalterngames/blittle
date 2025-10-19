@@ -1,8 +1,12 @@
 #![doc = include_str!("../README.md")]
 
+// #[cfg(feature = "rayon")]
+mod multi_threaded;
 mod position;
 mod size;
 pub mod stride;
+// #[cfg(feature = "rayon")]
+pub use multi_threaded::*;
 
 pub use position::*;
 pub use size::Size;

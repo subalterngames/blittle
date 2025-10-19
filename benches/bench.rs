@@ -14,12 +14,16 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     let src = vec![255u8; SRC_W * SRC_H * RGBA];
     let mut dst = vec![0u8; DST_W * DST_H * RGBA];
 
+    // Single thread.
     let dst_position = PositionU { x: 2, y: 12 };
     let dst_size = blittle::Size { w: DST_W, h: DST_H };
     let src_size = blittle::Size { w: SRC_W, h: SRC_H };
-    c.bench_function("blittle_buffer", |b| {
+    c.bench_function("blittle", |b| {
         b.iter(|| blit(&src, &src_size, &mut dst, &dst_position, &dst_size, RGBA))
     });
+
+    // Multi-thread.
+    
 
     // `blit` crate.
     let mut dst_u32 = vec![0u32; DST_W * DST_H];
@@ -30,16 +34,16 @@ pub fn criterion_benchmark(c: &mut Criterion) {
         width: DST_W as u32,
         height: DST_H as u32,
     };
-    c.bench_function("blit", |b| {
+    c.bench_function("blit (crate)", |b| {
         b.iter(|| blit_buffer.blit(&mut dst_u32, size, &position))
     });
 
-    // SDL3
+    // SDL2
     let mut dst = Surface::new(DST_W as u32, DST_H as u32, PixelFormatEnum::RGBA32).unwrap();
     let mut src = Surface::new(SRC_W as u32, SRC_H as u32, PixelFormatEnum::RGBA32).unwrap();
     let src_rect = src.rect();
     src.fill_rect(src_rect, Color::BLUE).unwrap();
-    c.bench_function("sdl2", |b| b.iter(|| src.blit(src_rect, &mut dst, None)));
+    c.bench_function("SDL2", |b| b.iter(|| src.blit(src_rect, &mut dst, None)));
 }
 
 criterion_group!(benches, criterion_benchmark);
