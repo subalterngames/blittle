@@ -41,6 +41,14 @@ destination image. This will cause your program to crash with a very opaque memo
 
 To trim the source image's blittable region, call [`clip`].
 
+## Multi-threaded
+
+You can make `blittle` a little bigger and a lot faster by including the `rayon` feature.
+
+This adds two functions:
+
+`blit_multi_threaded` breaks the source and destination images into multiple chunks and then blits each chunk in parallel. The function signature is the same as that of [`blit`] except that there's an additional `num_threads` argument.
+
 ## Benchmarks
 
-Run `cargo bench` and find out.
+Run `cargo bench` and find out. Run `cargo bench --features rayon` to find out even more.

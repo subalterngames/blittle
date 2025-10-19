@@ -1,11 +1,16 @@
-mod threaded_blit_params;
-
 use std::slice::{from_raw_parts, from_raw_parts_mut};
 
 use crate::{PositionU, Size, get_index};
 use rayon::iter::{IndexedParallelIterator, IntoParallelIterator, ParallelIterator};
-pub use threaded_blit_params::*;
+pub use rayon::max_num_threads;
 
+/// Blit using multiple threads by dividing `src` and `dst` into chunks and blitting each in parallel.
+///
+/// This can be either slower or faster than `blit` depending on the size of `src` and the number of threads you want/can use.
+/// Adjust `num_threads` accordingly:
+///
+/// - You don't want this to be more than the nmax number of threads available.
+/// - If you use too many threads for small images, this function can be slower than `blit` due to the overhead of spawning/joining threads.
 pub fn blit_multi_threaded(
     src: &[u8],
     src_size: &Size,
@@ -13,26 +18,7 @@ pub fn blit_multi_threaded(
     dst_position: &PositionU,
     dst_size: &Size,
     stride: usize,
-) {
-    blit_multi_threaded_ex(
-        src,
-        src_size,
-        dst,
-        dst_position,
-        dst_size,
-        stride,
-        &Default::default(),
-    );
-}
-
-pub fn blit_multi_threaded_ex(
-    src: &[u8],
-    src_size: &Size,
-    dst: &mut [u8],
-    dst_position: &PositionU,
-    dst_size: &Size,
-    stride: usize,
-    params: &ThreadedBlitParams,
+    num_threads: usize,
 ) {
     if src_size.w > 0 && src_size.h > 0 {
         let src_ptr = src.as_ptr();
@@ -55,7 +41,7 @@ pub fn blit_multi_threaded_ex(
             .collect::<Vec<(&[u8], &mut [u8])>>();
 
         // Iterate through chunks of slices.
-        let chunk_size = params.get_chunk_size(src_size.h) * stride;
+        let chunk_size = src.len() / num_threads;
         slices
             .into_par_iter()
             .chunks(chunk_size)

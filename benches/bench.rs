@@ -25,18 +25,17 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     // Multi-thread.
     #[cfg(feature = "rayon")]
     {
-        let chunk_size = ThreadedBlitParams::NumThreads(16).get_chunk_size(src_size.h);
-        let params = ThreadedBlitParams::ChunkSize(chunk_size);
+        let num_threads = 16.max(rayon::max_num_threads());
         c.bench_function("blittle multi-threaded", |b| {
             b.iter(|| {
-                blit_multi_threaded_ex(
+                blit_multi_threaded(
                     &src,
                     &src_size,
                     &mut dst,
                     &dst_position,
                     &dst_size,
                     RGBA,
-                    &params,
+                    num_threads,
                 )
             })
         });
