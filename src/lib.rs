@@ -41,7 +41,7 @@ pub fn blit(
 /// Returns `dst_position` as a clipped `PositionU` that can be used in [`blit`].
 pub fn clip(dst_position: &PositionI, dst_size: &Size, src_size: &mut Size) -> PositionU {
     // Check if the source image is totally out of bounds.
-    if dst_position.x + (src_size.w as isize) < 0 || dst_position.y + (src_size.h as isize) < 0 {
+    if dst_position.x + (src_size.w.cast_signed()) < 0 || dst_position.y + (src_size.h.cast_signed()) < 0 {
         src_size.w = 0;
         src_size.h = 0;
         PositionU::default()
