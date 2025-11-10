@@ -66,13 +66,14 @@ dependencies = [
 
 [[package]]
 name = "blittle"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "blit",
  "criterion",
  "png 0.18.0",
  "rayon",
  "sdl2",
+ "serde",
 ]
 
 [[package]]
