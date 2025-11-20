@@ -39,12 +39,14 @@ pub fn blit(
 
 /// Clip `src_size` such that it fits within the rectangle defined by `dst_position` and `dst_size`.
 /// Returns `dst_position` as a clipped `PositionU` that can be used in [`blit`].
-pub fn clip(dst_position: &PositionI, dst_size: &Size, src_size: &mut Size) -> PositionU {
+pub const fn clip(dst_position: &PositionI, dst_size: &Size, src_size: &mut Size) -> PositionU {
     // Check if the source image is totally out of bounds.
-    if dst_position.x + (src_size.w.cast_signed()) < 0 || dst_position.y + (src_size.h.cast_signed()) < 0 {
+    if dst_position.x + (src_size.w.cast_signed()) < 0
+        || dst_position.y + (src_size.h.cast_signed()) < 0
+    {
         src_size.w = 0;
         src_size.h = 0;
-        PositionU::default()
+        PositionU { x: 0, y: 0 }
     } else {
         let mut x = 0;
         if dst_position.x < 0 {
@@ -62,12 +64,18 @@ pub fn clip(dst_position: &PositionI, dst_size: &Size, src_size: &mut Size) -> P
         // This allows us to do unchecked subtraction.
         // The `blit` methods will also check `is_inside`.
         if dst_position.x < dst_size.w && dst_position.y < dst_size.h {
-            src_size.w = src_size.w.min(dst_size.w - dst_position.x);
-            src_size.h = src_size.h.min(dst_size.h - dst_position.y);
+            let w = dst_size.w - dst_position.x;
+            if w < src_size.w {
+                src_size.w = w;
+            }
+            let h = dst_size.h - dst_position.y;
+            if h < src_size.h {
+                src_size.h = h;
+            }
             dst_position
         } else {
-            *src_size = Size::default();
-            PositionU::default()
+            *src_size = Size { w: 0, h: 0 };
+            PositionU { x: 0, y: 0 }
         }
     }
 }
