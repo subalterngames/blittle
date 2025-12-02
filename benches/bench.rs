@@ -55,11 +55,34 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     });
 
     // SDL2
-    let mut dst = Surface::new(DST_W as u32, DST_H as u32, PixelFormatEnum::RGBA32).unwrap();
-    let mut src = Surface::new(SRC_W as u32, SRC_H as u32, PixelFormatEnum::RGBA32).unwrap();
-    let src_rect = src.rect();
-    src.fill_rect(src_rect, Color::BLUE).unwrap();
-    c.bench_function("SDL2", |b| b.iter(|| src.blit(src_rect, &mut dst, None)));
+    let mut dst_surface =
+        Surface::new(DST_W as u32, DST_H as u32, PixelFormatEnum::RGBA32).unwrap();
+    let mut src_surface =
+        Surface::new(SRC_W as u32, SRC_H as u32, PixelFormatEnum::RGBA32).unwrap();
+    let src_rect = src_surface.rect();
+    src_surface.fill_rect(src_rect, Color::BLUE).unwrap();
+    c.bench_function("SDL2", |b| {
+        b.iter(|| src_surface.blit(src_rect, &mut dst_surface, None))
+    });
+
+    // Overlay.
+    #[cfg(feature = "overlay")]
+    {
+        let src = vec![[100, 200, 80]; SRC_W * SRC_H * RGB];
+        let src = bytemuck::cast_slice::<[u8; 3], u8>(&src);
+        let mut dst = vec![Vec4::default(); SRC_W * SRC_H];
+        c.bench_function("rgba8 to rgba32", |b| {
+            b.iter(|| rgb8_to_rgba32_in_place(&src, &mut dst))
+        });
+
+        let dst = vec![[19, 100, 234, 190]; DST_W * DST_H * RGBA];
+        let src = rgba8_to_rgba32(&src);
+        let mut dst = rgba8_to_rgba32(bytemuck::cast_slice::<[u8; 4], u8>(&dst));
+
+        c.bench_function("overlay", |b| {
+            b.iter(|| overlay_rgba32(&src, &src_size, &mut dst, &dst_position, &dst_size));
+        });
+    }
 }
 
 criterion_group!(benches, criterion_benchmark);

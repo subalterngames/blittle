@@ -40,9 +40,9 @@ pub fn rgba32_to_rgb8_in_place(src: &[Vec4], dst: &mut [u8]) {
     src.iter()
         .zip(cast_slice_mut::<u8, [u8; RGB]>(dst))
         .for_each(|(src, dst)| {
-            dst[0] = (src.x * 255.) as u8;
-            dst[1] = (src.y * 255.) as u8;
-            dst[2] = (src.z * 255.) as u8;
+            dst[0] = (src.x * 255.).ceil() as u8;
+            dst[1] = (src.y * 255.).ceil() as u8;
+            dst[2] = (src.z * 255.).ceil() as u8;
         })
 }
 
@@ -53,10 +53,10 @@ pub fn rgba32_to_rgba8_in_place(src: &[Vec4], dst: &mut [u8]) {
     src.iter()
         .zip(cast_slice_mut::<u8, [u8; RGBA]>(dst))
         .for_each(|(src, dst)| {
-            dst[0] = (src.x * 255.) as u8;
-            dst[1] = (src.y * 255.) as u8;
-            dst[2] = (src.z * 255.) as u8;
-            dst[3] = (src.w * 255.) as u8;
+            dst[0] = (src.x * 255.).ceil() as u8;
+            dst[1] = (src.y * 255.).ceil() as u8;
+            dst[2] = (src.z * 255.).ceil() as u8;
+            dst[3] = (src.w * 255.).ceil() as u8;
         })
 }
 
@@ -186,13 +186,76 @@ pub fn overlay_rgba32(
 }
 
 fn overlay_pixel(src: &Vec4, dst: &mut Vec4) {
-    let src = *src;
     // Alpha midpoint.
-    let a = dst.midpoint(src).w;
+    let a = (dst.w + src.w) * 0.5;
     // Lerp to `src`.
-    *dst = dst.lerp(src, a);
+    *dst = dst.lerp(*src, a);
+    dst.w = a;
 }
 
 const fn get_index(x: usize, y: usize, w: usize) -> usize {
     x + y * w
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_rgb8_to_rgba32() {
+        let src = [[100, 70, 200]; 1024];
+        let casted = cast_slice::<[u8; 3], u8>(&src);
+        let vec4s = rgb8_to_rgba32(casted);
+        assert_eq!(vec4s.len(), src.len());
+        casted
+            .iter()
+            .zip(rgba32_to_rgb8(&vec4s))
+            .for_each(|(a, b)| assert_eq!(*a, b));
+    }
+
+    #[test]
+    fn test_rgba8_to_rgba32() {
+        let src = [[100, 70, 200, 90]; 1024];
+        let casted = cast_slice::<[u8; 4], u8>(&src);
+        let vec4s = rgba8_to_rgba32(casted);
+        assert_eq!(vec4s.len(), src.len());
+        casted
+            .iter()
+            .zip(rgba32_to_rgba8(&vec4s))
+            .for_each(|(a, b)| assert_eq!(*a, b));
+    }
+
+    #[test]
+    fn test_rgb8_overlay() {
+        let src = [[100, 70, 200]; 1024];
+        let src_casted = cast_slice::<[u8; 3], u8>(&src);
+
+        let dst = [[100, 70, 200, 90]; 1024];
+        let dst_casted = cast_slice::<[u8; 4], u8>(&dst);
+        let mut dst_vec4s = rgba8_to_rgba32(dst_casted);
+
+        let size = Size { w: 32, h: 32 };
+        let position = PositionU::default();
+
+        // No change.
+        //overlay_rgb8(src_casted, &size, &mut dst_vec4s, &position, &size, 0);
+        dst_casted
+            .iter()
+            .zip(rgba32_to_rgba8(&dst_vec4s))
+            .for_each(|(a, b)| assert_eq!(*a, b));
+
+        // Partial change.
+        overlay_rgb8(src_casted, &size, &mut dst_vec4s, &position, &size, 50);
+        cast_slice::<u8, [u8; 4]>(&rgba32_to_rgba8(&dst_vec4s))
+            .into_iter()
+            .for_each(|pixel| assert_eq!(*pixel, [100, 70, 200, 173]));
+
+        // Total change.
+        let src = [[255, 255, 200]; 1024];
+        let src_casted = cast_slice::<[u8; 3], u8>(&src);
+        overlay_rgb8(src_casted, &size, &mut dst_vec4s, &position, &size, 255);
+        cast_slice::<u8, [u8; 4]>(&rgba32_to_rgba8(&dst_vec4s))
+            .into_iter()
+            .for_each(|pixel| assert_eq!(*pixel, [255, 255, 200, 255]));
+    }
 }
