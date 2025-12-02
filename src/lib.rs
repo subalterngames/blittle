@@ -30,8 +30,9 @@ pub fn fill<const STRIDE: usize>(buffer: &mut [u8], color: [u8; STRIDE]) {
 /// Blit `src` onto `dst`.
 ///
 /// - `src` and `dst` are flat byte slices of images. There are many ways to cast your pixel map to `[u8]`, such as with the `bytemuck` crate.
+/// - `src_size` is the [`Size`] of the *region* of `src` that will be blitted.
 /// - `dst_position` is the top-left position of the region that `src` will blit onto.
-/// - `dst_size` and `src_size` are the [`Size`]'s of the destination and source images, respectively.
+/// - `dst_size` is the [`Size`]'s of the destination image.
 /// - `stride` is the per-pixel stride length. See `crate::stride` for some common stride values.
 pub fn blit(
     src: &[u8],

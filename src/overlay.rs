@@ -1,4 +1,5 @@
 use crate::stride::{RGB, RGBA};
+use crate::{PositionU, Size};
 use bytemuck::{cast_slice, cast_slice_mut};
 pub use glam::Vec4;
 
@@ -67,7 +68,7 @@ pub fn rgb8_to_rgba32(src: &[u8]) -> Vec<Vec4> {
 }
 
 /// Convert a bitmap of RGBA8 pixels (1 byte per channel) into a slice of [`Vec4`].
-pub fn rgb8a_to_rgba32(src: &[u8]) -> Vec<Vec4> {
+pub fn rgba8_to_rgba32(src: &[u8]) -> Vec<Vec4> {
     let mut dst = vec![Vec4::default(); src.len() / RGBA];
     rgba8_to_rgba32_in_place(src, &mut dst);
     dst
@@ -85,4 +86,113 @@ pub fn rgba32_to_rgba8(src: &[Vec4]) -> Vec<u8> {
     let mut dst = vec![0; src.len() * RGBA];
     rgba32_to_rgba8_in_place(src, &mut dst);
     dst
+}
+
+/// Overlay `src` onto `dst` using an `alpha` value.
+///
+/// - `src` is an RGB8 (1 byte per channel) image.
+/// - `src_size` is the size of the region of `src` that will be blitted.
+/// - `dst` is an RGBA32 (4 bytes per channel) image.
+/// - `dst_position` is the top-left position of the region that `src` will blit onto.
+/// - `dst_size` is the [`Size`]'s of the destination image.
+/// - `alpha` is the alpha channel. 0 is totally transparent.
+///
+/// Returns `src` as an RGBA32 bitmap (see: [`rgb8_to_rgba32`]).
+pub fn overlay_rgb8(
+    src: &[u8],
+    src_size: &Size,
+    dst: &mut [Vec4],
+    dst_position: &PositionU,
+    dst_size: &Size,
+    alpha: u8,
+) -> Vec<Vec4> {
+    if src_size.w > 0 && src_size.h > 0 && alpha > 0 {
+        let src = rgb8_to_rgba32(src);
+        (0..src_size.h).for_each(|src_y| {
+            let src_index = get_index(0, src_y, src_size.w);
+            let dst_index = get_index(dst_position.x, dst_position.y + src_y, dst_size.w);
+            src[src_index..src_index + src_size.w]
+                .iter()
+                .zip(dst[dst_index..dst_index + src_size.w].iter_mut())
+                .for_each(|(src, dst)| {
+                    // Replace the values.
+                    if alpha == 255 {
+                        dst.x = src.x;
+                        dst.y = src.y;
+                        dst.z = src.z;
+                        dst.w = 1.;
+                    } else {
+                        overlay_pixel(src, dst);
+                    }
+                });
+        });
+        src
+    } else {
+        Vec::default()
+    }
+}
+
+/// Overlay `src` onto `dst`.
+///
+/// - `src` is an RGBA8 (1 byte per channel) image.
+/// - `src_size` is the size of the region of `src` that will be blitted.
+/// - `dst` is an RGBA32 (4 bytes per channel) image.
+/// - `dst_position` is the top-left position of the region that `src` will blit onto.
+/// - `dst_size` is the [`Size`]'s of the destination image.
+///
+/// Returns `src` as an RGBA32 bitmap (see: [`rgba8_to_rgba32`]).
+pub fn overlay_rgba8(
+    src: &[u8],
+    src_size: &Size,
+    dst: &mut [Vec4],
+    dst_position: &PositionU,
+    dst_size: &Size,
+) -> Vec<Vec4> {
+    if src_size.w > 0 && src_size.h > 0 {
+        let src = rgba8_to_rgba32(src);
+        overlay_rgba32(&src, src_size, dst, dst_position, dst_size);
+        src
+    } else {
+        Vec::default()
+    }
+}
+
+/// Overlay `src` onto `dst`.
+///
+/// - `src` is an RGBA32 (4 bytes per channel) image.
+/// - `src_size` is the size of the region of `src` that will be blitted.
+/// - `dst` is an RGBA32 (4 bytes per channel) image.
+/// - `dst_position` is the top-left position of the region that `src` will blit onto.
+/// - `dst_size` is the [`Size`]'s of the destination image.
+pub fn overlay_rgba32(
+    src: &[Vec4],
+    src_size: &Size,
+    dst: &mut [Vec4],
+    dst_position: &PositionU,
+    dst_size: &Size,
+) {
+    if src_size.w > 0 && src_size.h > 0 {
+        (0..src_size.h).for_each(|src_y| {
+            let src_index = get_index(0, src_y, src_size.w);
+            let dst_index = get_index(dst_position.x, dst_position.y + src_y, dst_size.w);
+            src[src_index..src_index + src_size.w]
+                .iter()
+                .zip(dst[dst_index..dst_index + src_size.w].iter_mut())
+                .for_each(|(src, dst)| {
+                    overlay_pixel(src, dst);
+                });
+        });
+    }
+}
+
+fn overlay_pixel(src: &Vec4, dst: &mut Vec4) {
+    let src = *src;
+    // Alpha midpoint.
+    let a = dst.midpoint(src).w;
+    // Lerp to `src`.
+    *dst = dst.lerp(src, a);
+}
+
+const fn get_index(x: usize, y: usize, w: usize) -> usize {
+    x + y * w
 }
