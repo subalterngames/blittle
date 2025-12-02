@@ -18,7 +18,7 @@ impl From<PositionU> for PositionI {
     fn from(value: PositionU) -> Self {
         Self {
             x: value.x.cast_signed(),
-            y: value.y.cast_signed()
+            y: value.y.cast_signed(),
         }
     }
 }
@@ -41,7 +41,7 @@ impl From<PositionI> for PositionU {
     fn from(value: PositionI) -> Self {
         Self {
             x: value.x.cast_unsigned(),
-            y: value.y.cast_unsigned()
+            y: value.y.cast_unsigned(),
         }
     }
 }

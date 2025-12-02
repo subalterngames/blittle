@@ -66,10 +66,12 @@ dependencies = [
 
 [[package]]
 name = "blittle"
-version = "0.2.4"
+version = "0.3.0"
 dependencies = [
  "blit",
+ "bytemuck",
  "criterion",
+ "glam",
  "png 0.18.0",
  "rayon",
  "sdl2",
@@ -286,6 +288,12 @@ dependencies = [
  "color_quant",
  "weezl",
 ]
+
+[[package]]
+name = "glam"
+version = "0.30.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bd47b05dddf0005d850e5644cae7f2b14ac3df487979dbfff3b56f20b1a6ae46"
 
 [[package]]
 name = "half"
