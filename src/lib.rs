@@ -6,11 +6,22 @@ mod multi_threaded;
 mod position;
 mod size;
 pub mod stride;
+
+use std::slice::from_raw_parts_mut;
 #[cfg(feature = "rayon")]
 pub use multi_threaded::*;
 
 pub use position::*;
 pub use size::Size;
+
+/// Fill `buffer` with `color`.
+pub fn fill<const STRIDE: usize>(buffer: &mut [u8], color: [u8; STRIDE]) {
+    let ptr = buffer.as_mut_ptr().cast::<[u8; STRIDE]>();
+    let len = buffer.len() / STRIDE;
+    unsafe {
+        from_raw_parts_mut(ptr, len).fill(color);
+    }
+}
 
 /// Blit `src` onto `dst`.
 ///
