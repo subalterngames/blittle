@@ -70,17 +70,17 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     {
         let src = vec![[100, 200, 80]; SRC_W * SRC_H * RGB];
         let src = bytemuck::cast_slice::<[u8; 3], u8>(&src);
-        let mut dst = vec![Vec4::default(); SRC_W * SRC_H];
+        let mut dst = vec![overlay::Vec4::default(); SRC_W * SRC_H];
         c.bench_function("rgba8 to rgba32", |b| {
-            b.iter(|| rgb8_to_rgba32_in_place(&src, &mut dst))
+            b.iter(|| overlay::rgb8_to_rgba32_in_place(&src, &mut dst))
         });
 
         let dst = vec![[19, 100, 234, 190]; DST_W * DST_H * RGBA];
-        let src = rgba8_to_rgba32(&src);
-        let mut dst = rgba8_to_rgba32(bytemuck::cast_slice::<[u8; 4], u8>(&dst));
+        let src = overlay::rgba8_to_rgba32(&src);
+        let mut dst = overlay::rgba8_to_rgba32(bytemuck::cast_slice::<[u8; 4], u8>(&dst));
 
         c.bench_function("overlay", |b| {
-            b.iter(|| overlay_rgba32(&src, &src_size, &mut dst, &dst_position, &dst_size));
+            b.iter(|| overlay::overlay_rgba32(&src, &src_size, &mut dst, &dst_position, &dst_size));
         });
     }
 }

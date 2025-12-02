@@ -1,3 +1,54 @@
+//! This module contains functions for overlaying a source image onto destination image using alpha (transparency) value(s).
+//!
+//! To overlay one pixel onto another, the pixels must be converted from three to four 1-byte channels to four 4-byte channels.
+//! For example, RGB8 must be converted into RGBA32 (where the value of each channel ranges from 0.0 to 1.0).
+//! In this module, `blittle` uses [`Vec4`] to represent an RGBA32 pixel.
+//! This allows `blittle` to use glam's SIMD magic.
+//!
+//! As always, it is more efficient to pre-allocate your `Vec<Vec4>` outputs if you intend to overlay more than once.
+//! For example: [`rgb8_to_rgba32`] returns a `Vec<Vec4>` representation of the `src` image,
+//! but it would be faster to pre-allocate instead and then call [`rgb8_to_rgba32_in_place`]:
+//!
+//! ```
+//! use blittle::overlay::{rgb8_to_rgba32_in_place, Vec4};
+//! use blittle::stride::RGB;
+//!
+//! let w = 16;
+//! let h = 16;
+//! let src = vec![200; w * h * RGB];
+//! let mut dst = vec![Vec4::default(); w * h];
+//! rgb8_to_rgba32_in_place(&src, &mut dst);
+//! ```
+//!
+//! Likewise, it's faster to pre-allocate and then perform the actual overlaying operation:
+//!
+//! ```
+//! use blittle::overlay::*;
+//! use blittle::{PositionU, Size};
+//! use blittle::stride::{RGB, RGBA};
+//!
+//!
+//! let w = 16;
+//! let h = 16;
+//!
+//! let src8 = vec![200; w * h * RGB];
+//! // Convert src to RGBA32.
+//! let mut src32 = vec![Vec4::default(); w * h];
+//! rgb8_to_rgba32_in_place(&src8, &mut src32);
+//!
+//! let mut dst8 = vec![90; w * h * RGBA];
+//! /// Convert dst to RGBA32.
+//! let mut dst32 = vec![Vec4::default(); w * h];
+//! rgba8_to_rgba32_in_place(&dst8, &mut dst32);
+//!
+//! // Overlay src onto dst.
+//! let size = Size { w, h };
+//! overlay_rgba32(&src32, &size, &mut dst32, &PositionU::default(), &size);
+//!
+//! // Convert dst32 back into RGBA8.
+//! rgba32_to_rgba8_in_place(&dst32, &mut dst8);
+//! ```
+
 use crate::stride::{RGB, RGBA};
 use crate::{PositionU, Size};
 use bytemuck::{cast_slice, cast_slice_mut};

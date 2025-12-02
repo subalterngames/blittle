@@ -4,15 +4,13 @@
 #[cfg(feature = "rayon")]
 mod multi_threaded;
 #[cfg(feature = "overlay")]
-mod overlay;
+pub mod overlay;
 mod position;
 mod size;
 pub mod stride;
 
 #[cfg(feature = "rayon")]
 pub use multi_threaded::*;
-#[cfg(feature = "overlay")]
-pub use overlay::*;
 use std::slice::from_raw_parts_mut;
 
 pub use position::*;
