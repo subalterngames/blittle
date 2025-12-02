@@ -236,7 +236,8 @@ pub fn overlay_rgba32(
     }
 }
 
-fn overlay_pixel(src: &Vec4, dst: &mut Vec4) {
+/// Overlay a `src` pixel onto a `dst` pixel.
+pub fn overlay_pixel(src: &Vec4, dst: &mut Vec4) {
     // Alpha midpoint.
     let a = (dst.w + src.w) * 0.5;
     // Lerp to `src`.
