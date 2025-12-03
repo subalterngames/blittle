@@ -49,6 +49,7 @@
 //! rgba32_to_rgba8_in_place(&dst32, &mut dst8);
 //! ```
 
+use std::ops::Deref;
 use crate::stride::{RGB, RGBA};
 use crate::{PositionU, Size};
 use bytemuck::{cast_slice, cast_slice_mut};
@@ -137,6 +138,49 @@ pub fn rgba32_to_rgba8(src: &[Vec4]) -> Vec<u8> {
     let mut dst = vec![0; src.len() * RGBA];
     rgba32_to_rgba8_in_place(src, &mut dst);
     dst
+}
+
+/// Convert an RGB8 color to an RGBA32 color.
+pub const fn rgb8_to_rgba32_color(color: &[u8; 3]) -> Vec4 {
+    Vec4::new(
+        color[0] as f32 / 255.,
+        color[1] as f32 / 255.,
+        color[2] as f32 / 255.,
+        1.,
+    )
+}
+
+/// Convert an RGB8 color to an RGBA32 color.
+pub const fn rgba8_to_rgba32_color(color: &[u8; 4]) -> Vec4 {
+    Vec4::new(
+        color[0] as f32 / 255.,
+        color[1] as f32 / 255.,
+        color[2] as f32 / 255.,
+        color[3] as f32 / 255.,
+    )
+}
+
+/// Convert an RGBA32 color to an RGB8 color.
+#[inline]
+pub fn rgba32_to_rgb8_color(color: &Vec4) -> [u8; 3] {
+    let color = color.deref();
+    [
+        (color.x * 255.).ceil() as u8,
+        (color.y * 255.).ceil() as u8,
+        (color.z * 255.).ceil() as u8,
+    ]
+}
+
+/// Convert an RGBA32 color to an RGBA8 color.
+#[inline]
+pub fn rgba32_to_rgba8_color(color: &Vec4) -> [u8; 4] {
+    let color = color.deref();
+    [
+        (color.x * 255.).ceil() as u8,
+        (color.y * 255.).ceil() as u8,
+        (color.z * 255.).ceil() as u8,
+        (color.w * 255.).ceil() as u8,
+    ]
 }
 
 /// Overlay `src` onto `dst` using an `alpha` value.
@@ -237,6 +281,7 @@ pub fn overlay_rgba32(
 }
 
 /// Overlay a `src` pixel onto a `dst` pixel.
+#[inline]
 pub fn overlay_pixel(src: &Vec4, dst: &mut Vec4) {
     // Alpha midpoint.
     let a = (dst.w + src.w) * 0.5;
