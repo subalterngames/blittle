@@ -268,7 +268,7 @@ pub fn overlay_rgba32(
 ) {
     if src_size.w > 0 && src_size.h > 0 {
         (0..src_size.h).for_each(|src_y| {
-            let src_index = get_index(0, src_y, src_size.w);
+            let src_index = src_y * src_size.w;
             let dst_index = get_index(dst_position.x, dst_position.y + src_y, dst_size.w);
             src[src_index..src_index + src_size.w]
                 .iter()
