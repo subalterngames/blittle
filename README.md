@@ -18,11 +18,12 @@ let dst_h = 64;
 // Another raw image bitmap.
 let mut dst = vec![0u8; dst_w * dst_h * RGB];
 // The top-left position of where `src` will appear on `dst`.
-let dst_position = PositionU { x: 2, y: 12 };
+let dst_position = PositionI { x: 2, y: 12 };
 let dst_size = Size { w: dst_w, h: dst_h };
+let rect = ClippedRect::new(dst_position, dst_size, src_size).unwrap();
 
 // Blit `src` onto `dst`.
-blit(&src, &src_size, &mut dst, &dst_position, &dst_size, RGB);
+blit(&src, &mut dst, &rect, RGB);
 ```
 
 ## No mask? No mask!

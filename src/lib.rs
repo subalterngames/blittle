@@ -1,6 +1,7 @@
 #![doc = include_str!("../README.md")]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 
+mod clip;
 #[cfg(feature = "rayon")]
 mod multi_threaded;
 #[cfg(feature = "overlay")]
@@ -15,6 +16,7 @@ use std::slice::from_raw_parts_mut;
 
 pub use position::*;
 pub use size::Size;
+pub use clip::ClippedRect;
 
 /// Fill `buffer` with `color`.
 pub fn fill<const STRIDE: usize>(buffer: &mut [u8], color: [u8; STRIDE]) {
@@ -28,70 +30,21 @@ pub fn fill<const STRIDE: usize>(buffer: &mut [u8], color: [u8; STRIDE]) {
 /// Blit `src` onto `dst`.
 ///
 /// - `src` and `dst` are flat byte slices of images. There are many ways to cast your pixel map to `[u8]`, such as with the `bytemuck` crate.
-/// - `src_size` is the [`Size`] of the *region* of `src` that will be blitted.
-/// - `dst_position` is the top-left position of the region that `src` will blit onto.
-/// - `dst_size` is the [`Size`]'s of the destination image.
+/// - `rect` is the [`ClippedRect`] defining the blit area.
 /// - `stride` is the per-pixel stride length. See `crate::stride` for some common stride values.
 pub fn blit(
     src: &[u8],
-    src_size: &Size,
     dst: &mut [u8],
-    dst_position: &PositionU,
-    dst_size: &Size,
+    rect: &ClippedRect,
     stride: usize,
 ) {
-    if src_size.w > 0 && src_size.h > 0 {
-        let src_w_stride = src_size.w * stride;
-        (0..src_size.h).for_each(|src_y| {
-            let src_index = get_index(0, src_y, src_size.w, stride);
-            let dst_index = get_index(dst_position.x, dst_position.y + src_y, dst_size.w, stride);
-            dst[dst_index..dst_index + src_w_stride]
-                .copy_from_slice(&src[src_index..src_index + src_w_stride]);
-        });
-    }
-}
-
-/// Clip `src_size` such that it fits within the rectangle defined by `dst_position` and `dst_size`.
-/// Returns `dst_position` as a clipped `PositionU` that can be used in [`blit`].
-pub const fn clip(dst_position: &PositionI, dst_size: &Size, src_size: &mut Size) -> PositionU {
-    // Check if the source image is totally out of bounds.
-    if dst_position.x + (src_size.w.cast_signed()) < 0
-        || dst_position.y + (src_size.h.cast_signed()) < 0
-    {
-        src_size.w = 0;
-        src_size.h = 0;
-        PositionU { x: 0, y: 0 }
-    } else {
-        let mut x = 0;
-        if dst_position.x < 0 {
-            src_size.w = src_size.w.saturating_sub(dst_position.x.unsigned_abs());
-        } else {
-            x = dst_position.x.unsigned_abs();
-        }
-        let mut y = 0;
-        if dst_position.y < 0 {
-            src_size.h = src_size.h.saturating_sub(dst_position.y.unsigned_abs());
-        } else {
-            y = dst_position.y.unsigned_abs();
-        }
-        let dst_position = PositionU { x, y };
-        // This allows us to do unchecked subtraction.
-        // The `blit` methods will also check `is_inside`.
-        if dst_position.x < dst_size.w && dst_position.y < dst_size.h {
-            let w = dst_size.w - dst_position.x;
-            if w < src_size.w {
-                src_size.w = w;
-            }
-            let h = dst_size.h - dst_position.y;
-            if h < src_size.h {
-                src_size.h = h;
-            }
-            dst_position
-        } else {
-            *src_size = Size { w: 0, h: 0 };
-            PositionU { x: 0, y: 0 }
-        }
-    }
+    let src_w = rect.src_size_clipped.w * stride;
+    (0..rect.src_size_clipped.h).for_each(|src_y| {
+        let src_index = get_index(0, src_y, rect.src_size.w, stride);
+        let dst_index = get_index(rect.dst_position_clipped.x, rect.dst_position_clipped.y + src_y, rect.dst_size.w, stride);
+        dst[dst_index..dst_index + src_w]
+            .copy_from_slice(&src[src_index..src_index + src_w]);
+    });
 }
 
 /// Converts a position, width, and stride to an index in a 1D byte slice.
@@ -115,11 +68,12 @@ mod tests {
         let src = [255u8; SRC_W * SRC_H * RGB];
         let mut dst = [0u8; DST_W * DST_H * RGB];
 
-        let dst_position = PositionU { x: 2, y: 12 };
+        let dst_position = PositionI { x: 2, y: 12 };
         let dst_size = Size { w: DST_W, h: DST_H };
         let src_size = Size { w: SRC_W, h: SRC_H };
+        let rect = ClippedRect::new(dst_position, dst_size, src_size).unwrap();
 
-        blit(&src, &src_size, &mut dst, &dst_position, &dst_size, RGB);
+        blit(&src, &mut dst, &rect, RGB);
 
         save_png("blit.png", &dst, DST_W as u32, DST_H as u32);
     }
@@ -136,10 +90,10 @@ mod tests {
 
         let dst_position = PositionI { x, y };
         let dst_size = Size { w: DST_W, h: DST_H };
-        let mut src_size = Size { w: SRC_W, h: SRC_H };
-        let dst_position = clip(&dst_position, &dst_size, &mut src_size);
+        let src_size = Size { w: SRC_W, h: SRC_H };
+        let rect = ClippedRect::new(dst_position, dst_size, src_size).unwrap();
 
-        blit(&src, &src_size, &mut dst, &dst_position, &dst_size, RGB);
+        blit(&src, &mut dst, &rect, RGB);
         save_png(name, &dst, DST_W as u32, DST_H as u32);
     }
 

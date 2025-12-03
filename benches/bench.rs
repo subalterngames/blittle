@@ -15,11 +15,12 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     let mut dst = vec![0u8; DST_W * DST_H * RGBA];
 
     // Single thread.
-    let dst_position = PositionU { x: 2, y: 12 };
+    let dst_position = PositionI { x: 2, y: 12 };
     let dst_size = blittle::Size { w: DST_W, h: DST_H };
     let src_size = blittle::Size { w: SRC_W, h: SRC_H };
+    let rect = ClippedRect::new(dst_position, dst_size, src_size).unwrap();
     c.bench_function("blittle", |b| {
-        b.iter(|| blit(&src, &src_size, &mut dst, &dst_position, &dst_size, RGBA))
+        b.iter(|| blit(&src, &mut dst, &rect, RGBA))
     });
 
     // Multi-thread.
@@ -30,10 +31,8 @@ pub fn criterion_benchmark(c: &mut Criterion) {
             b.iter(|| {
                 blit_multi_threaded(
                     &src,
-                    &src_size,
                     &mut dst,
-                    &dst_position,
-                    &dst_size,
+                    &rect,
                     RGBA,
                     num_threads,
                 )
@@ -80,7 +79,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
         let mut dst = overlay::rgba8_to_rgba32(bytemuck::cast_slice::<[u8; 4], u8>(&dst));
 
         c.bench_function("overlay", |b| {
-            b.iter(|| overlay::overlay_rgba32(&src, &src_size, &mut dst, &dst_position, &dst_size));
+            b.iter(|| overlay::overlay_rgba32(&src, &mut dst, &rect));
         });
     }
 }
