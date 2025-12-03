@@ -49,11 +49,11 @@
 //! rgba32_to_rgba8_in_place(&dst32, &mut dst8);
 //! ```
 
-use std::ops::Deref;
 use crate::stride::{RGB, RGBA};
 use crate::{PositionU, Size};
 use bytemuck::{cast_slice, cast_slice_mut};
 pub use glam::Vec4;
+use std::ops::Deref;
 
 /// Convert a bitmap of RGB8 pixels (1 byte per channel) into a slice of [`Vec4`].
 ///
