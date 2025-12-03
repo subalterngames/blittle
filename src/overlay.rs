@@ -313,7 +313,6 @@ mod tests {
         let position = PositionI::default();
 
         // No change.
-        //overlay_rgb8(src_casted, &size, &mut dst_vec4s, &position, &size, 0);
         dst_casted
             .iter()
             .zip(rgba32_to_rgba8(&dst_vec4s))

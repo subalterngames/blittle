@@ -5,10 +5,15 @@ use std::fmt::{Display, Formatter};
 #[derive(Copy, Clone, Debug, Default)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct ClippedRect {
+    /// The original top-left position of the where the source image should blit to.
     pub dst_position: PositionI,
+    /// The clipped top-left position that is actually used for blitting.
     pub dst_position_clipped: PositionU,
+    /// The original size of the source image.
     pub src_size: Size,
+    /// The clipped size of the source image, which is used for blitting.
     pub src_size_clipped: Size,
+    /// The size of the destination image.
     pub dst_size: Size,
 }
 

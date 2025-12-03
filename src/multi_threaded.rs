@@ -9,7 +9,7 @@ pub use rayon::max_num_threads;
 /// This can be either slower or faster than `blit` depending on the size of `src` and the number of threads you want/can use.
 /// Adjust `num_threads` accordingly:
 ///
-/// - You don't want this to be more than the nmax number of threads available.
+/// - You don't want this to be more than the max number of threads available.
 /// - If you use too many threads for small images, this function can be slower than `blit` due to the overhead of spawning/joining threads.
 pub fn blit_multi_threaded(
     src: &[u8],
