@@ -14,9 +14,9 @@ pub mod stride;
 pub use multi_threaded::*;
 use std::slice::from_raw_parts_mut;
 
+pub use clip::ClippedRect;
 pub use position::*;
 pub use size::Size;
-pub use clip::ClippedRect;
 
 /// Fill `buffer` with `color`.
 pub fn fill<const STRIDE: usize>(buffer: &mut [u8], color: [u8; STRIDE]) {
@@ -32,18 +32,17 @@ pub fn fill<const STRIDE: usize>(buffer: &mut [u8], color: [u8; STRIDE]) {
 /// - `src` and `dst` are flat byte slices of images. There are many ways to cast your pixel map to `[u8]`, such as with the `bytemuck` crate.
 /// - `rect` is the [`ClippedRect`] defining the blit area.
 /// - `stride` is the per-pixel stride length. See `crate::stride` for some common stride values.
-pub fn blit(
-    src: &[u8],
-    dst: &mut [u8],
-    rect: &ClippedRect,
-    stride: usize,
-) {
+pub fn blit(src: &[u8], dst: &mut [u8], rect: &ClippedRect, stride: usize) {
     let src_w = rect.src_size_clipped.w * stride;
     (0..rect.src_size_clipped.h).for_each(|src_y| {
         let src_index = get_index(0, src_y, rect.src_size.w, stride);
-        let dst_index = get_index(rect.dst_position_clipped.x, rect.dst_position_clipped.y + src_y, rect.dst_size.w, stride);
-        dst[dst_index..dst_index + src_w]
-            .copy_from_slice(&src[src_index..src_index + src_w]);
+        let dst_index = get_index(
+            rect.dst_position_clipped.x,
+            rect.dst_position_clipped.y + src_y,
+            rect.dst_size.w,
+            stride,
+        );
+        dst[dst_index..dst_index + src_w].copy_from_slice(&src[src_index..src_index + src_w]);
     });
 }
 

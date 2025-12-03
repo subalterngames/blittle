@@ -49,16 +49,15 @@ impl ClippedRect {
                 if h < src_size.h {
                     src_size_clipped.h = h;
                 }
-                if src_size_clipped.w == 0 && src_size_clipped.h == 0 {
+                if src_size_clipped.w == 0 || src_size_clipped.h == 0 {
                     None
-                }
-                else {
+                } else {
                     Some(Self {
                         dst_position,
                         dst_position_clipped,
                         src_size,
                         src_size_clipped,
-                        dst_size
+                        dst_size,
                     })
                 }
             } else {

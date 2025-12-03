@@ -19,24 +19,14 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     let dst_size = blittle::Size { w: DST_W, h: DST_H };
     let src_size = blittle::Size { w: SRC_W, h: SRC_H };
     let rect = ClippedRect::new(dst_position, dst_size, src_size).unwrap();
-    c.bench_function("blittle", |b| {
-        b.iter(|| blit(&src, &mut dst, &rect, RGBA))
-    });
+    c.bench_function("blittle", |b| b.iter(|| blit(&src, &mut dst, &rect, RGBA)));
 
     // Multi-thread.
     #[cfg(feature = "rayon")]
     {
         let num_threads = 16.max(rayon::max_num_threads());
         c.bench_function("blittle multi-threaded", |b| {
-            b.iter(|| {
-                blit_multi_threaded(
-                    &src,
-                    &mut dst,
-                    &rect,
-                    RGBA,
-                    num_threads,
-                )
-            })
+            b.iter(|| blit_multi_threaded(&src, &mut dst, &rect, RGBA, num_threads))
         });
     }
 

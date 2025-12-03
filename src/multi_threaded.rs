@@ -1,6 +1,6 @@
 use std::slice::{from_raw_parts, from_raw_parts_mut};
 
-use crate::{get_index, ClippedRect};
+use crate::{ClippedRect, get_index};
 use rayon::iter::{IndexedParallelIterator, IntoParallelIterator, ParallelIterator};
 pub use rayon::max_num_threads;
 
@@ -26,7 +26,12 @@ pub fn blit_multi_threaded(
     let slices = (0..rect.src_size_clipped.h)
         .map(|src_y| {
             let src_index = get_index(0, src_y, rect.src_size.w, stride);
-            let dst_index = get_index(rect.dst_position_clipped.x, rect.dst_position_clipped.y + src_y, rect.dst_size.w, stride);
+            let dst_index = get_index(
+                rect.dst_position_clipped.x,
+                rect.dst_position_clipped.y + src_y,
+                rect.dst_size.w,
+                stride,
+            );
             unsafe {
                 (
                     from_raw_parts(src_ptr.add(src_index), src_w),
