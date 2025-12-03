@@ -284,7 +284,7 @@ pub fn overlay_rgba32(
 #[inline]
 pub fn overlay_pixel(src: &Vec4, dst: &mut Vec4) {
     // Alpha midpoint.
-    let a = (dst.w + src.w) * 0.5;
+    let a = dst.w.min(src.w);
     // Lerp to `src`.
     *dst = dst.lerp(*src, a);
     dst.w = a;
@@ -345,7 +345,7 @@ mod tests {
         overlay_rgb8(src_casted, &size, &mut dst_vec4s, &position, &size, 50);
         cast_slice::<u8, [u8; 4]>(&rgba32_to_rgba8(&dst_vec4s))
             .into_iter()
-            .for_each(|pixel| assert_eq!(*pixel, [100, 70, 200, 173]));
+            .for_each(|pixel| assert_eq!(*pixel, [100, 70, 200, 90]));
 
         // Total change.
         let src = [[255, 255, 200]; 1024];
