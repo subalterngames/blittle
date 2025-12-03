@@ -283,11 +283,9 @@ pub fn overlay_rgba32(
 /// Overlay a `src` pixel onto a `dst` pixel.
 #[inline]
 pub fn overlay_pixel(src: &Vec4, dst: &mut Vec4) {
-    // Alpha midpoint.
-    let a = dst.w.min(src.w);
-    // Lerp to `src`.
-    *dst = dst.lerp(*src, a);
-    dst.w = a;
+    let src_a = src.w;
+    // Source: https://shi-yan.github.io/note_on_alpha_blending/
+    *dst = *src * src_a + *dst * (1. - src_a);
 }
 
 const fn get_index(x: usize, y: usize, w: usize) -> usize {
@@ -345,7 +343,7 @@ mod tests {
         overlay_rgb8(src_casted, &size, &mut dst_vec4s, &position, &size, 50);
         cast_slice::<u8, [u8; 4]>(&rgba32_to_rgba8(&dst_vec4s))
             .into_iter()
-            .for_each(|pixel| assert_eq!(*pixel, [100, 70, 200, 90]));
+            .for_each(|pixel| assert_eq!(*pixel, [100, 70, 200, 173]));
 
         // Total change.
         let src = [[255, 255, 200]; 1024];
