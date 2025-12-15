@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.1
+
+- Improved `fill(buffer, color)` performance.
+- Added: `ClippedRect::overlaps(other)`.
+
 ## 0.3.0
 
 - Added `overlay` feature which adds many new functions for overlaying pixels using an alpha transparency channel.

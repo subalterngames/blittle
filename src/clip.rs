@@ -70,6 +70,16 @@ impl ClippedRect {
             }
         }
     }
+
+    /// Returns true if this rect overlaps with `b`.
+    pub const fn overlaps(&self, b: &ClippedRect) -> bool {
+        self.dst_position_clipped.x
+            <= b.dst_position_clipped.x + b.dst_position_clipped.x + b.src_size_clipped.w
+            && self.dst_position_clipped.x + self.src_size_clipped.w <= b.dst_position_clipped.x
+            && self.dst_position_clipped.y
+            <= b.dst_position_clipped.y + b.dst_position_clipped.y + b.src_size_clipped.h
+            && self.dst_position_clipped.y + self.src_size_clipped.h <= b.dst_position_clipped.y
+    }
 }
 
 impl Display for ClippedRect {

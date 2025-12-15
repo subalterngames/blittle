@@ -14,6 +14,9 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     let src = vec![255u8; SRC_W * SRC_H * RGBA];
     let mut dst = vec![0u8; DST_W * DST_H * RGBA];
 
+    // Fill.
+    c.bench_function("fill", |b| b.iter(|| fill(&mut dst, [255, 0, 255])));
+
     // Single thread.
     let dst_position = PositionI { x: 2, y: 12 };
     let dst_size = blittle::Size { w: DST_W, h: DST_H };

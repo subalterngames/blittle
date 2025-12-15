@@ -12,7 +12,6 @@ pub mod stride;
 
 #[cfg(feature = "rayon")]
 pub use multi_threaded::*;
-use std::slice::from_raw_parts_mut;
 
 pub use clip::ClippedRect;
 pub use position::*;
@@ -20,11 +19,11 @@ pub use size::Size;
 
 /// Fill `buffer` with `color`.
 pub fn fill<const STRIDE: usize>(buffer: &mut [u8], color: [u8; STRIDE]) {
-    let ptr = buffer.as_mut_ptr().cast::<[u8; STRIDE]>();
-    let len = buffer.len() / STRIDE;
-    unsafe {
-        from_raw_parts_mut(ptr, len).fill(color);
-    }
+    buffer.chunks_exact_mut(STRIDE).for_each(|pixel| {
+        for i in 0..STRIDE {
+            pixel[i] = color[i];
+        }
+    });
 }
 
 /// Blit `src` onto `dst`.
