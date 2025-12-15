@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.2
+
+- Oops, `ClippedRect::overlaps(other)` was wrong.
+
 ## 0.3.1
 
 - Improved `fill(buffer, color)` performance.
