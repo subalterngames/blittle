@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.3
+
+- Added `bytemuck` feature to `glam`
+
 ## 0.3.2
 
 - Oops, `ClippedRect::overlaps(other)` was wrong.

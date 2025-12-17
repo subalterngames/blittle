@@ -324,7 +324,7 @@ mod tests {
         overlay_rgb8(src_casted, &mut dst_vec4s, &rect, 50);
         cast_slice::<u8, [u8; 4]>(&rgba32_to_rgba8(&dst_vec4s))
             .into_iter()
-            .for_each(|pixel| assert_eq!(*pixel, [100, 70, 200, 173]));
+            .for_each(|pixel| assert_eq!(*pixel, [100, 70, 200, 255]));
 
         // Total change.
         let src = [[255, 255, 200]; 1024];

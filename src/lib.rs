@@ -18,6 +18,7 @@ pub use position::*;
 pub use size::Size;
 
 /// Fill `buffer` with `color`.
+#[allow(clippy::manual_memcpy)]
 pub fn fill<const STRIDE: usize>(buffer: &mut [u8], color: [u8; STRIDE]) {
     buffer.chunks_exact_mut(STRIDE).for_each(|pixel| {
         for i in 0..STRIDE {
