@@ -1,6 +1,6 @@
 use std::slice::{from_raw_parts, from_raw_parts_mut};
 
-use crate::{ClippedRect, get_index};
+use crate::{ClippedRect, PixelType, get_index};
 use rayon::iter::{IndexedParallelIterator, IntoParallelIterator, ParallelIterator};
 pub use rayon::max_num_threads;
 
@@ -15,9 +15,10 @@ pub fn blit_multi_threaded(
     src: &[u8],
     dst: &mut [u8],
     rect: &ClippedRect,
-    stride: usize,
+    pixel_type: &PixelType,
     num_threads: usize,
 ) {
+    let stride = pixel_type.stride();
     let src_ptr = src.as_ptr();
     let dst_ptr = dst.as_mut_ptr();
     let src_w = rect.src_size_clipped.w * stride;

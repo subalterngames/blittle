@@ -6,14 +6,15 @@ mod clip;
 mod multi_threaded;
 #[cfg(feature = "overlay")]
 pub mod overlay;
+mod pixel_type;
 mod position;
 mod size;
-pub mod stride;
 
 #[cfg(feature = "rayon")]
 pub use multi_threaded::*;
 
 pub use clip::ClippedRect;
+pub use pixel_type::PixelType;
 pub use position::*;
 pub use size::Size;
 
@@ -31,8 +32,9 @@ pub fn fill<const STRIDE: usize>(buffer: &mut [u8], color: [u8; STRIDE]) {
 ///
 /// - `src` and `dst` are flat byte slices of images. There are many ways to cast your pixel map to `[u8]`, such as with the `bytemuck` crate.
 /// - `rect` is the [`ClippedRect`] defining the blit area.
-/// - `stride` is the per-pixel stride length. See `crate::stride` for some common stride values.
-pub fn blit(src: &[u8], dst: &mut [u8], rect: &ClippedRect, stride: usize) {
+/// - `pixel_type` is the [`PixelType`] for both `src` and `dst`.
+pub fn blit(src: &[u8], dst: &mut [u8], rect: &ClippedRect, pixel_type: &PixelType) {
+    let stride = pixel_type.stride();
     let src_w = rect.src_size_clipped.w * stride;
     (0..rect.src_size_clipped.h).for_each(|src_y| {
         let src_index = get_index(0, src_y, rect.src_size.w, stride);
@@ -54,13 +56,15 @@ pub const fn get_index(x: usize, y: usize, w: usize, stride: usize) -> usize {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::stride::RGB;
     use std::{fs::File, io::BufWriter, path::Path};
 
     const SRC_W: usize = 32;
     const SRC_H: usize = 17;
     const DST_W: usize = 64;
     const DST_H: usize = 64;
+
+    const PIXEL_TYPE: PixelType = PixelType::Rgb8;
+    const RGB: usize = PIXEL_TYPE.stride();
 
     #[test]
     fn test_blit() {
@@ -72,7 +76,7 @@ mod tests {
         let src_size = Size { w: SRC_W, h: SRC_H };
         let rect = ClippedRect::new(dst_position, dst_size, src_size).unwrap();
 
-        blit(&src, &mut dst, &rect, RGB);
+        blit(&src, &mut dst, &rect, &PIXEL_TYPE);
 
         save_png("blit.png", &dst, DST_W as u32, DST_H as u32);
     }
@@ -92,7 +96,7 @@ mod tests {
         let src_size = Size { w: SRC_W, h: SRC_H };
         let rect = ClippedRect::new(dst_position, dst_size, src_size).unwrap();
 
-        blit(&src, &mut dst, &rect, RGB);
+        blit(&src, &mut dst, &rect, &PIXEL_TYPE);
         save_png(name, &dst, DST_W as u32, DST_H as u32);
     }
 

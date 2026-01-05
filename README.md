@@ -3,27 +3,30 @@
 **`blittle` is a fast little blitter.**
 
 ```
-use blittle::{*, stride::RGB};
+use blittle::*;
+
+/// Red, green, blue. One byte per channel.
+let pixel_type = PixelType::Rgb8;
 
 // The dimensions and byte data of the source image.
 let src_w = 32;
 let src_h = 17;
 // A raw image bitmap.re
-let src = vec![0u8; src_w * src_h * RGB];
+let src = vec![0u8; src_w * src_h * pixel_type.stride()];
 let src_size = Size { w: src_w, h: src_h };
 
 // The dimensions and byte data of the destination image.
 let dst_w = 64;
 let dst_h = 64;
 // Another raw image bitmap.
-let mut dst = vec![0u8; dst_w * dst_h * RGB];
+let mut dst = vec![0u8; dst_w * dst_h * pixel_type.stride()];
 // The top-left position of where `src` will appear on `dst`.
 let dst_position = PositionI { x: 2, y: 12 };
 let dst_size = Size { w: dst_w, h: dst_h };
 let rect = ClippedRect::new(dst_position, dst_size, src_size).unwrap();
 
 // Blit `src` onto `dst`.
-blit(&src, &mut dst, &rect, RGB);
+blit(&src, &mut dst, &rect, &pixel_type);
 ```
 
 ## No mask? No mask!

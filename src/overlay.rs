@@ -11,11 +11,11 @@
 //!
 //! ```
 //! use blittle::overlay::{rgb8_to_rgba32_in_place, Vec4};
-//! use blittle::stride::RGB;
+//! use blittle::PixelType;
 //!
 //! let w = 16;
 //! let h = 16;
-//! let src = vec![200; w * h * RGB];
+//! let src = vec![200; w * h * PixelType::Rgb8.stride()];
 //! let mut dst = vec![Vec4::default(); w * h];
 //! rgb8_to_rgba32_in_place(&src, &mut dst);
 //! ```
@@ -24,19 +24,18 @@
 //!
 //! ```
 //! use blittle::overlay::*;
-//! use blittle::{ClippedRect, PositionI, Size};
-//! use blittle::stride::{RGB, RGBA};
+//! use blittle::{ClippedRect, PixelType, PositionI, Size};
 //!
 //!
 //! let w = 16;
 //! let h = 16;
 //!
-//! let src8 = vec![200; w * h * RGB];
+//! let src8 = vec![200; w * h * PixelType::Rgb8.stride()];
 //! // Convert src to RGBA32.
 //! let mut src32 = vec![Vec4::default(); w * h];
 //! rgb8_to_rgba32_in_place(&src8, &mut src32);
 //!
-//! let mut dst8 = vec![90; w * h * RGBA];
+//! let mut dst8 = vec![90; w * h * PixelType::Rgba8.stride()];
 //! /// Convert dst to RGBA32.
 //! let mut dst32 = vec![Vec4::default(); w * h];
 //! rgba8_to_rgba32_in_place(&dst8, &mut dst32);
@@ -51,8 +50,7 @@
 //! rgba32_to_rgba8_in_place(&dst32, &mut dst8);
 //! ```
 
-use crate::clip::ClippedRect;
-use crate::stride::{RGB, RGBA};
+use crate::{ClippedRect, PixelType};
 use bytemuck::{cast_slice, cast_slice_mut};
 pub use glam::Vec4;
 use std::ops::Deref;
@@ -61,7 +59,7 @@ use std::ops::Deref;
 ///
 /// The size of `dst` must be: `src.len() / 3`.
 pub fn rgb8_to_rgba32_in_place(src: &[u8], dst: &mut [Vec4]) {
-    cast_slice::<u8, [u8; RGB]>(src)
+    cast_slice::<u8, [u8; PixelType::Rgb8.stride()]>(src)
         .iter()
         .zip(dst)
         .for_each(|(src, dst)| {
@@ -76,7 +74,7 @@ pub fn rgb8_to_rgba32_in_place(src: &[u8], dst: &mut [Vec4]) {
 ///
 /// The size of `dst` must be: `src.len() / 4`.
 pub fn rgba8_to_rgba32_in_place(src: &[u8], dst: &mut [Vec4]) {
-    cast_slice::<u8, [u8; RGBA]>(src)
+    cast_slice::<u8, [u8; PixelType::Rgba8.stride()]>(src)
         .iter()
         .zip(dst)
         .for_each(|(src, dst)| {
@@ -92,7 +90,7 @@ pub fn rgba8_to_rgba32_in_place(src: &[u8], dst: &mut [Vec4]) {
 /// The size of `dst` must be: `src.len() * 3`.
 pub fn rgba32_to_rgb8_in_place(src: &[Vec4], dst: &mut [u8]) {
     src.iter()
-        .zip(cast_slice_mut::<u8, [u8; RGB]>(dst))
+        .zip(cast_slice_mut::<u8, [u8; PixelType::Rgb8.stride()]>(dst))
         .for_each(|(src, dst)| {
             dst[0] = (src.x * 255.).ceil() as u8;
             dst[1] = (src.y * 255.).ceil() as u8;
@@ -105,7 +103,7 @@ pub fn rgba32_to_rgb8_in_place(src: &[Vec4], dst: &mut [u8]) {
 /// The size of `dst` must be: `src.len() * 4`.
 pub fn rgba32_to_rgba8_in_place(src: &[Vec4], dst: &mut [u8]) {
     src.iter()
-        .zip(cast_slice_mut::<u8, [u8; RGBA]>(dst))
+        .zip(cast_slice_mut::<u8, [u8; PixelType::Rgba8.stride()]>(dst))
         .for_each(|(src, dst)| {
             dst[0] = (src.x * 255.).ceil() as u8;
             dst[1] = (src.y * 255.).ceil() as u8;
@@ -116,28 +114,28 @@ pub fn rgba32_to_rgba8_in_place(src: &[Vec4], dst: &mut [u8]) {
 
 /// Convert a bitmap of RGB8 pixels (1 byte per channel) into a slice of [`Vec4`].
 pub fn rgb8_to_rgba32(src: &[u8]) -> Vec<Vec4> {
-    let mut dst = vec![Vec4::default(); src.len() / RGB];
+    let mut dst = vec![Vec4::default(); src.len() / PixelType::Rgb8.stride()];
     rgb8_to_rgba32_in_place(src, &mut dst);
     dst
 }
 
 /// Convert a bitmap of RGBA8 pixels (1 byte per channel) into a slice of [`Vec4`].
 pub fn rgba8_to_rgba32(src: &[u8]) -> Vec<Vec4> {
-    let mut dst = vec![Vec4::default(); src.len() / RGBA];
+    let mut dst = vec![Vec4::default(); src.len() / PixelType::Rgba8.stride()];
     rgba8_to_rgba32_in_place(src, &mut dst);
     dst
 }
 
 /// Convert a bitmap of RGB32 pixels (4 bytes per channel) into a raw RGB8 byte slice.
 pub fn rgba32_to_rgb8(src: &[Vec4]) -> Vec<u8> {
-    let mut dst = vec![0; src.len() * RGB];
+    let mut dst = vec![0; src.len() * PixelType::Rgb8.stride()];
     rgba32_to_rgb8_in_place(src, &mut dst);
     dst
 }
 
 /// Convert a bitmap of RGBA32 pixels (4 bytes per channel) into a raw RGBA byte slice.
 pub fn rgba32_to_rgba8(src: &[Vec4]) -> Vec<u8> {
-    let mut dst = vec![0; src.len() * RGBA];
+    let mut dst = vec![0; src.len() * PixelType::Rgba8.stride()];
     rgba32_to_rgba8_in_place(src, &mut dst);
     dst
 }
