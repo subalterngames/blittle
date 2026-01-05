@@ -13,6 +13,8 @@ pub struct ClippedRect {
     pub src_size: Size,
     /// The clipped size of the source image, which is used for blitting.
     pub src_size_clipped: Size,
+    /// A pixel offset in the source bitmap.
+    pub(crate) src_position: Option<PositionU>,
     /// The size of the destination image.
     pub dst_size: Size,
 }
@@ -63,6 +65,7 @@ impl ClippedRect {
                         src_size,
                         src_size_clipped,
                         dst_size,
+                        src_position: None,
                     })
                 }
             } else {
@@ -77,6 +80,33 @@ impl ClippedRect {
             && self.dst_position_clipped.x + self.src_size_clipped.w > b.dst_position_clipped.x
             && self.dst_position_clipped.y <= b.dst_position_clipped.y + b.src_size_clipped.h
             && self.dst_position_clipped.y + self.src_size_clipped.h > b.dst_position_clipped.y
+    }
+
+    /// Set the area within the source bitmap to blit.
+    pub const fn set_src_rect(&mut self, position: PositionU, size: Size) {
+        // Clip the size.
+        let mut size = Size {
+            w: if self.src_size_clipped.w < size.w {
+                self.src_size_clipped.w
+            } else {
+                size.w
+            },
+            h: if self.src_size_clipped.h < size.h {
+                self.src_size_clipped.h
+            } else {
+                size.h
+            },
+        };
+        // Apply the offset only if it's within the clipped bounds.
+        if position.x < size.w && position.y < size.h {
+            // Set the offset.
+            self.src_position = Some(position);
+            // Apply the offset.
+            size.w -= position.x;
+            size.h -= position.y;
+            // Set the new clipped size.
+            self.src_size_clipped = size;
+        }
     }
 }
 

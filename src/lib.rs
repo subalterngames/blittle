@@ -1,21 +1,21 @@
 #![doc = include_str!("../README.md")]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 
-mod clip;
 #[cfg(feature = "rayon")]
 mod multi_threaded;
 #[cfg(feature = "overlay")]
 pub mod overlay;
 mod pixel_type;
 mod position;
+mod rect;
 mod size;
 
 #[cfg(feature = "rayon")]
 pub use multi_threaded::*;
 
-pub use clip::ClippedRect;
 pub use pixel_type::PixelType;
 pub use position::*;
+pub use rect::ClippedRect;
 pub use size::Size;
 
 /// Blit `src` onto `dst`.
@@ -26,8 +26,12 @@ pub use size::Size;
 pub fn blit(src: &[u8], dst: &mut [u8], rect: &ClippedRect, pixel_type: &PixelType) {
     let stride = pixel_type.stride();
     let src_w = rect.src_size_clipped.w * stride;
+    let src_offset = match rect.src_position.as_ref() {
+        Some(position) => *position,
+        None => PositionU::default(),
+    };
     (0..rect.src_size_clipped.h).for_each(|src_y| {
-        let src_index = get_index(0, src_y, rect.src_size.w, stride);
+        let src_index = get_index(src_offset.x, src_y + src_offset.y, rect.src_size.w, stride);
         let dst_index = get_index(
             rect.dst_position_clipped.x,
             rect.dst_position_clipped.y + src_y,
