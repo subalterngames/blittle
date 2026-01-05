@@ -22,11 +22,17 @@ pub fn blit_multi_threaded(
     let src_ptr = src.as_ptr();
     let dst_ptr = dst.as_mut_ptr();
     let src_w = rect.src_size_clipped.w * stride;
+    let src_position = rect.get_src_position();
 
     // Divide into slices.
     let slices = (0..rect.src_size_clipped.h)
         .map(|src_y| {
-            let src_index = get_index(0, src_y, rect.src_size.w, stride);
+            let src_index = get_index(
+                src_position.x,
+                src_position.y + src_y,
+                rect.src_size.w,
+                stride,
+            );
             let dst_index = get_index(
                 rect.dst_position_clipped.x,
                 rect.dst_position_clipped.y + src_y,

@@ -26,12 +26,14 @@ pub use size::Size;
 pub fn blit(src: &[u8], dst: &mut [u8], rect: &ClippedRect, pixel_type: &PixelType) {
     let stride = pixel_type.stride();
     let src_w = rect.src_size_clipped.w * stride;
-    let src_offset = match rect.src_position.as_ref() {
-        Some(position) => *position,
-        None => PositionU::default(),
-    };
+    let src_position = rect.get_src_position();
     (0..rect.src_size_clipped.h).for_each(|src_y| {
-        let src_index = get_index(src_offset.x, src_y + src_offset.y, rect.src_size.w, stride);
+        let src_index = get_index(
+            src_position.x,
+            src_y + src_position.y,
+            rect.src_size.w,
+            stride,
+        );
         let dst_index = get_index(
             rect.dst_position_clipped.x,
             rect.dst_position_clipped.y + src_y,

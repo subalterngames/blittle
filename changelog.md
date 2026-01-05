@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.4.0
+
+- Removed `bytemuck` feature from `glam`
+- Removed `fill()` function. It's slow and easy to implement ad-hoc.
+- Replaced `blittle::stride::*` with `blittle::PixelType`
+- Added: `ClippedRect::set_src_rect()` to set an area within the source bitmap to blit
+
 ## 0.3.3
 
 - Added `bytemuck` feature to `glam`

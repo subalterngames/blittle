@@ -194,8 +194,9 @@ pub fn rgba32_to_rgba8_color(color: &Vec4) -> [u8; 4] {
 pub fn overlay_rgb8(src: &[u8], dst: &mut [Vec4], rect: &ClippedRect, alpha: u8) -> Vec<Vec4> {
     if alpha > 0 {
         let src = rgb8_to_rgba32(src);
+        let src_position = rect.get_src_position();
         (0..rect.src_size_clipped.h).for_each(|src_y| {
-            let src_index = get_index(0, src_y, rect.src_size.w);
+            let src_index = get_index(src_position.x, src_position.y + src_y, rect.src_size.w);
             let dst_index = get_index(
                 rect.dst_position_clipped.x,
                 rect.dst_position_clipped.y + src_y,
@@ -241,8 +242,9 @@ pub fn overlay_rgba8(src: &[u8], dst: &mut [Vec4], rect: &ClippedRect) -> Vec<Ve
 /// - `dst` is an RGBA32 (4 bytes per channel) image.
 /// - `rect` is the [`ClippedRect`] defining the blit area.
 pub fn overlay_rgba32(src: &[Vec4], dst: &mut [Vec4], rect: &ClippedRect) {
+    let src_position = rect.get_src_position();
     (0..rect.src_size_clipped.h).for_each(|src_y| {
-        let src_index = get_index(0, src_y, rect.src_size.w);
+        let src_index = get_index(src_position.x, src_position.y + src_y, rect.src_size.w);
         let dst_index = get_index(
             rect.dst_position_clipped.x,
             rect.dst_position_clipped.y + src_y,

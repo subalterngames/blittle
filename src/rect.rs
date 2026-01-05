@@ -115,6 +115,11 @@ impl ClippedRect {
             self.src_size_clipped = size;
         }
     }
+
+    pub(crate) fn get_src_position(&self) -> PositionU {
+        self.src_position
+            .unwrap_or_else(|| PositionU { x: 0, y: 0 })
+    }
 }
 
 impl Display for ClippedRect {
