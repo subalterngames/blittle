@@ -18,16 +18,6 @@ pub use pixel_type::PixelType;
 pub use position::*;
 pub use size::Size;
 
-/// Fill `buffer` with `color`.
-#[allow(clippy::manual_memcpy)]
-pub fn fill<const STRIDE: usize>(buffer: &mut [u8], color: [u8; STRIDE]) {
-    buffer.chunks_exact_mut(STRIDE).for_each(|pixel| {
-        for i in 0..STRIDE {
-            pixel[i] = color[i];
-        }
-    });
-}
-
 /// Blit `src` onto `dst`.
 ///
 /// - `src` and `dst` are flat byte slices of images. There are many ways to cast your pixel map to `[u8]`, such as with the `bytemuck` crate.
