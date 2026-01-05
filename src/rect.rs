@@ -82,7 +82,14 @@ impl ClippedRect {
             && self.dst_position_clipped.y + self.src_size_clipped.h > b.dst_position_clipped.y
     }
 
-    /// Set the area within the source bitmap to blit.
+    /// Set the rect within the source bitmap to blit.
+    ///
+    /// By default, the entirety of the source bitmap blits.
+    /// This sets an internal positional offset. and modifies `self.src_clipped_area`.
+    /// If the positional offset would be beyond the original clipped area, this function does nothing.
+    ///
+    /// - `position` is the position offset from the top-level corner of the source bitmap.
+    /// - `size` is the size of the rect. This will be clipped to `self.src_size_clipped` if needed.
     pub const fn set_src_rect(&mut self, position: PositionU, size: Size) {
         // Clip the size.
         let mut size = Size {

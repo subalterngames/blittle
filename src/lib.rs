@@ -50,6 +50,7 @@ pub const fn get_index(x: usize, y: usize, w: usize, stride: usize) -> usize {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::io::Cursor;
     use std::{fs::File, io::BufWriter, path::Path};
 
     const SRC_W: usize = 32;
@@ -79,6 +80,28 @@ mod tests {
     fn test_clip() {
         blit_clipped("clip_positive.png", 42, 16);
         blit_clipped("clip_negative.png", -8, -8);
+    }
+
+    #[test]
+    fn test_src_area() {
+        let src_size = Size { w: 64, h: 64 };
+        let pixel_type = PixelType::Rgb8;
+
+        let decoder = png::Decoder::new(Cursor::new(include_bytes!(
+            "../test_images/checkerboard.png"
+        )));
+        let mut reader = decoder.read_info().unwrap();
+        let mut buf = vec![0; reader.output_buffer_size().unwrap()];
+        let info = reader.next_frame(&mut buf).unwrap();
+        let src = &buf[..info.buffer_size()];
+        assert_eq!(src.len(), src_size.w * src_size.h * pixel_type.stride());
+
+        let dst_size = Size { w: 128, h: 128 };
+        let mut dst = vec![255; dst_size.w * dst_size.h * pixel_type.stride()];
+        let mut rect = ClippedRect::new(PositionI { x: 12, y: 13 }, dst_size, src_size).unwrap();
+        rect.set_src_rect(PositionU { x: 20, y: 3 }, Size { w: 32, h: 32 });
+        blit(src, &mut dst, &rect, &pixel_type);
+        save_png("blit_area.png", &dst, dst_size.w as u32, dst_size.h as u32);
     }
 
     fn blit_clipped(name: &str, x: isize, y: isize) {
