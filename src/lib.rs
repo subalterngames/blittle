@@ -75,7 +75,7 @@ mod tests {
 
         blit(&src, &mut dst, &rect, &PIXEL_TYPE);
 
-        save_png("blit.png", &dst, DST_W as u32, DST_H as u32);
+        write_png("blit.png", &dst, DST_W as u32, DST_H as u32);
     }
 
     #[test]
@@ -85,25 +85,41 @@ mod tests {
     }
 
     #[test]
+    fn test_clipped_text() {
+        let src = read_png(include_bytes!("../test_images/text.png"));
+        let d = 512;
+        let s = 128;
+        let mut dst = vec![0u8; d * d * RGB];
+
+        let dst_position = PositionI {
+            x: -s / 4,
+            y: s + s / 2,
+        };
+        let dst_size = Size { w: d, h: d };
+        let src_size = Size {
+            w: s as usize,
+            h: s as usize,
+        };
+        let rect = ClippedRect::new(dst_position, dst_size, src_size).unwrap();
+
+        blit(&src, &mut dst, &rect, &PIXEL_TYPE);
+        write_png("text.png", &dst, d as u32, d as u32);
+    }
+
+    #[test]
     fn test_src_area() {
         let src_size = Size { w: 64, h: 64 };
         let pixel_type = PixelType::Rgb8;
 
-        let decoder = png::Decoder::new(Cursor::new(include_bytes!(
-            "../test_images/checkerboard.png"
-        )));
-        let mut reader = decoder.read_info().unwrap();
-        let mut buf = vec![0; reader.output_buffer_size().unwrap()];
-        let info = reader.next_frame(&mut buf).unwrap();
-        let src = &buf[..info.buffer_size()];
+        let src = read_png(include_bytes!("../test_images/checkerboard.png"));
         assert_eq!(src.len(), src_size.w * src_size.h * pixel_type.stride());
 
         let dst_size = Size { w: 128, h: 128 };
         let mut dst = vec![255; dst_size.w * dst_size.h * pixel_type.stride()];
         let mut rect = ClippedRect::new(PositionI { x: 12, y: 13 }, dst_size, src_size).unwrap();
         rect.set_src_rect(PositionU { x: 20, y: 3 }, Size { w: 32, h: 32 });
-        blit(src, &mut dst, &rect, &pixel_type);
-        save_png("blit_area.png", &dst, dst_size.w as u32, dst_size.h as u32);
+        blit(&src, &mut dst, &rect, &pixel_type);
+        write_png("blit_area.png", &dst, dst_size.w as u32, dst_size.h as u32);
     }
 
     fn blit_clipped(name: &str, x: isize, y: isize) {
@@ -116,10 +132,18 @@ mod tests {
         let rect = ClippedRect::new(dst_position, dst_size, src_size).unwrap();
 
         blit(&src, &mut dst, &rect, &PIXEL_TYPE);
-        save_png(name, &dst, DST_W as u32, DST_H as u32);
+        write_png(name, &dst, DST_W as u32, DST_H as u32);
     }
 
-    fn save_png(path: &str, dst: &[u8], dst_w: u32, dst_h: u32) {
+    fn read_png(bytes: &[u8]) -> Vec<u8> {
+        let decoder = png::Decoder::new(Cursor::new(bytes));
+        let mut reader = decoder.read_info().unwrap();
+        let mut buf = vec![0; reader.output_buffer_size().unwrap()];
+        let info = reader.next_frame(&mut buf).unwrap();
+        buf[..info.buffer_size()].to_vec()
+    }
+
+    fn write_png(path: &str, dst: &[u8], dst_w: u32, dst_h: u32) {
         let path = Path::new(path);
         let file = File::create(path).unwrap();
         let w = BufWriter::new(file);
