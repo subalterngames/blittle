@@ -14,7 +14,7 @@ pub struct ClippedRect {
     /// The clipped size of the source image, which is used for blitting.
     pub src_size_clipped: Size,
     /// A pixel offset in the source bitmap.
-    pub(crate) src_position: Option<PositionU>,
+    pub(crate) src_position: PositionU,
     /// The size of the destination image.
     pub dst_size: Size,
 }
@@ -31,20 +31,31 @@ impl ClippedRect {
         {
             None
         } else {
+            // Get the clipped size and position.
             let mut x = 0;
+            let mut y = 0;
             let mut src_size_clipped = src_size;
             if dst_position.x < 0 {
                 src_size_clipped.w = src_size.w.saturating_sub(dst_position.x.unsigned_abs());
             } else {
                 x = dst_position.x.unsigned_abs();
             }
-            let mut y = 0;
             if dst_position.y < 0 {
                 src_size_clipped.h = src_size.h.saturating_sub(dst_position.y.unsigned_abs());
             } else {
                 y = dst_position.y.unsigned_abs();
             }
             let dst_position_clipped = PositionU { x, y };
+
+            // Get the source position.
+            let mut src_position = PositionU { x: 0, y: 0 };
+            if dst_position.x < 0 {
+                src_position.x += dst_position.x.unsigned_abs();
+            }
+            if dst_position.y < 0 {
+                src_position.y += dst_position.y.unsigned_abs();
+            }
+
             // This allows us to do unchecked subtraction.
             // The `blit` methods will also check `is_inside`.
             if dst_position_clipped.x < dst_size.w && dst_position_clipped.y < dst_size.h {
@@ -65,7 +76,7 @@ impl ClippedRect {
                         src_size,
                         src_size_clipped,
                         dst_size,
-                        src_position: None,
+                        src_position,
                     })
                 }
             } else {
@@ -107,18 +118,13 @@ impl ClippedRect {
         // Apply the offset only if it's within the clipped bounds.
         if position.x < size.w && position.y < size.h {
             // Set the offset.
-            self.src_position = Some(position);
+            self.src_position = position;
             // Apply the offset.
             size.w -= position.x;
             size.h -= position.y;
             // Set the new clipped size.
             self.src_size_clipped = size;
         }
-    }
-
-    pub(crate) fn get_src_position(&self) -> PositionU {
-        self.src_position
-            .unwrap_or_else(|| PositionU { x: 0, y: 0 })
     }
 }
 

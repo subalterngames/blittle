@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.1
+
+- Fixed: Clipped images start to blit at the top-left corner.
+
 ## 0.4.0
 
 - Removed `bytemuck` feature from `glam`

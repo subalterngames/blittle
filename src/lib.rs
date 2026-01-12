@@ -26,11 +26,10 @@ pub use size::Size;
 pub fn blit(src: &[u8], dst: &mut [u8], rect: &ClippedRect, pixel_type: &PixelType) {
     let stride = pixel_type.stride();
     let src_w = rect.src_size_clipped.w * stride;
-    let src_position = rect.get_src_position();
     (0..rect.src_size_clipped.h).for_each(|src_y| {
         let src_index = get_index(
-            src_position.x,
-            src_y + src_position.y,
+            rect.src_position.x,
+            src_y + rect.src_position.y,
             rect.src_size.w,
             stride,
         );
@@ -108,16 +107,16 @@ mod tests {
 
     #[test]
     fn test_src_area() {
-        let src_size = Size { w: 64, h: 64 };
+        let src_size = Size { w: 128, h: 128 };
         let pixel_type = PixelType::Rgb8;
 
-        let src = read_png(include_bytes!("../test_images/checkerboard.png"));
+        let src = read_png(include_bytes!("../test_images/text.png"));
         assert_eq!(src.len(), src_size.w * src_size.h * pixel_type.stride());
 
         let dst_size = Size { w: 128, h: 128 };
         let mut dst = vec![255; dst_size.w * dst_size.h * pixel_type.stride()];
         let mut rect = ClippedRect::new(PositionI { x: 12, y: 13 }, dst_size, src_size).unwrap();
-        rect.set_src_rect(PositionU { x: 20, y: 3 }, Size { w: 32, h: 32 });
+        rect.set_src_rect(PositionU { x: 20, y: 3 }, Size { w: 50, h: 70 });
         blit(&src, &mut dst, &rect, &pixel_type);
         write_png("blit_area.png", &dst, dst_size.w as u32, dst_size.h as u32);
     }
