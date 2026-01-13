@@ -1,7 +1,7 @@
 use std::fmt::{Display, Formatter};
 
 /// Rectangular bounds defined by a width and height.
-#[derive(Copy, Clone, Debug, Default)]
+#[derive(Copy, Clone, Debug, Default, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct Size {
     pub w: usize,

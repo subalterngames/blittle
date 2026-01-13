@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.2
+
+- Derive `Eq` and `PartialEq` for `Size`.
+
 ## 0.4.1
 
 - Fixed: Clipped images start to blit at the top-left corner.
