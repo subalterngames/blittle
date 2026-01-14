@@ -116,12 +116,9 @@ impl ClippedRect {
             },
         };
         // Apply the offset only if it's within the clipped bounds.
-        if position.x < size.w && position.y < size.h {
+        if position.x + size.w <= self.src_size.w && position.y + size.h <= self.src_size.h {
             // Set the offset.
             self.src_position = position;
-            // Apply the offset.
-            size.w -= position.x;
-            size.h -= position.y;
             // Set the new clipped size.
             self.src_size_clipped = size;
         }
@@ -132,7 +129,7 @@ impl Display for ClippedRect {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "dst position: {}\ndst position (clipped): {}\nsrc size: {}, src size (clipped): {}",
+            "dst position: {}\ndst position (clipped): {}\nsrc size: {}\nsrc size (clipped): {}",
             self.dst_position, self.dst_position_clipped, self.src_size, self.src_size_clipped
         )
     }

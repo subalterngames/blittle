@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.3
+
+- Fixed `ClippedRect::set_src_rect()` to handle clipping properly.
+
 ## 0.4.2
 
 - Derive `Eq` and `PartialEq` for `Size`.
