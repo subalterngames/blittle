@@ -103,7 +103,7 @@ impl ClippedRect {
     /// - `size` is the size of the rect. This will be clipped to `self.src_size_clipped` if needed.
     pub const fn set_src_rect(&mut self, position: PositionU, size: Size) {
         // Clip the size.
-        let mut size = Size {
+        let size = Size {
             w: if self.src_size_clipped.w < size.w {
                 self.src_size_clipped.w
             } else {
