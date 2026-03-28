@@ -92,10 +92,11 @@ pub fn rgba32_to_rgb8_in_place(src: &[Vec4], dst: &mut [u8]) {
     src.iter()
         .zip(cast_slice_mut::<u8, [u8; PixelType::Rgb8.stride()]>(dst))
         .for_each(|(src, dst)| {
+            let src = src * 256.;
             let src = src.deref();
-            dst[0] = f32_to_u8(src.x);
-            dst[1] = f32_to_u8(src.y);
-            dst[2] = f32_to_u8(src.z);
+            dst[0] = src.x as u8;
+            dst[1] = src.y as u8;
+            dst[2] = src.z as u8;
         })
 }
 
@@ -106,11 +107,12 @@ pub fn rgba32_to_rgba8_in_place(src: &[Vec4], dst: &mut [u8]) {
     src.iter()
         .zip(cast_slice_mut::<u8, [u8; PixelType::Rgba8.stride()]>(dst))
         .for_each(|(src, dst)| {
+            let src = src * 256.;
             let src = src.deref();
-            dst[0] = f32_to_u8(src.x);
-            dst[1] = f32_to_u8(src.y);
-            dst[2] = f32_to_u8(src.z);
-            dst[3] = f32_to_u8(src.w);
+            dst[0] = src.x as u8;
+            dst[1] = src.y as u8;
+            dst[2] = src.z as u8;
+            dst[3] = src.w as u8;
         })
 }
 
@@ -165,23 +167,25 @@ pub const fn rgba8_to_rgba32_color(color: &[u8; 4]) -> Vec4 {
 /// Convert an RGBA32 color to an RGB8 color.
 #[inline]
 pub fn rgba32_to_rgb8_color(color: &Vec4) -> [u8; 3] {
+    let color = color * 256.;
     let color = color.deref();
     [
-        f32_to_u8(color.x),
-        f32_to_u8(color.y),
-        f32_to_u8(color.z),
+        color.x as u8,
+        color.y as u8,
+        color.z as u8,
     ]
 }
 
 /// Convert an RGBA32 color to an RGBA8 color.
 #[inline]
 pub fn rgba32_to_rgba8_color(color: &Vec4) -> [u8; 4] {
+    let color = color * 256.;
     let color = color.deref();
     [
-        f32_to_u8(color.x),
-        f32_to_u8(color.y),
-        f32_to_u8(color.z),
-        f32_to_u8(color.w),
+        color.x as u8,
+        color.y as u8,
+        color.z as u8,
+        color.w as u8,
     ]
 }
 
@@ -316,10 +320,6 @@ const fn u8_to_f32(v: u8) -> f32 {
     ];
 
     U8_TO_F32[v as usize]
-}
-
-const fn f32_to_u8(v: f32) -> u8 {
-    (v * 256.) as u8
 }
 
 #[cfg(test)]
