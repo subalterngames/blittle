@@ -92,11 +92,11 @@ pub fn rgba32_to_rgb8_in_place(src: &[Vec4], dst: &mut [u8]) {
     src.iter()
         .zip(cast_slice_mut::<u8, [u8; PixelType::Rgb8.stride()]>(dst))
         .for_each(|(src, dst)| {
-            let src = src * 256.;
-            let src = src.deref();
-            dst[0] = src.x as u8;
-            dst[1] = src.y as u8;
-            dst[2] = src.z as u8;
+            let color = src * 256.;
+            let color = color.deref();
+            dst[0] = color.x as u8;
+            dst[1] = color.y as u8;
+            dst[2] = color.z as u8;
         })
 }
 
@@ -107,12 +107,12 @@ pub fn rgba32_to_rgba8_in_place(src: &[Vec4], dst: &mut [u8]) {
     src.iter()
         .zip(cast_slice_mut::<u8, [u8; PixelType::Rgba8.stride()]>(dst))
         .for_each(|(src, dst)| {
-            let src = src * 256.;
-            let src = src.deref();
-            dst[0] = src.x as u8;
-            dst[1] = src.y as u8;
-            dst[2] = src.z as u8;
-            dst[3] = src.w as u8;
+            let color = src * 256.;
+            let color = color.deref();
+            dst[0] = color.x as u8;
+            dst[1] = color.y as u8;
+            dst[2] = color.z as u8;
+            dst[3] = color.w as u8;
         })
 }
 
@@ -320,26 +320,44 @@ mod tests {
 
     #[test]
     fn test_rgb8_to_rgba32() {
-        let src = [[100, 70, 200]; 1024];
-        let casted = cast_slice::<[u8; 3], u8>(&src);
-        let vec4s = rgb8_to_rgba32(casted);
-        assert_eq!(vec4s.len(), src.len());
+        let u8s = [100, 70, 200];
+        let f32s = rgb8_to_rgba32_color(&u8s);
+        let casted = rgba32_to_rgb8_color(&f32s);
         casted
-            .iter()
-            .zip(rgba32_to_rgb8(&vec4s))
-            .for_each(|(a, b)| assert_eq!(*a, b));
+            .into_iter()
+            .zip(u8s)
+            .for_each(|(a, b)| assert_eq!(a, b));
+
+        let u8s = [u8s; 1024];
+        let u8s_casted = cast_slice::<[u8; 3], u8>(&u8s);
+        let f32s = rgb8_to_rgba32(u8s_casted);
+        let casted = rgba32_to_rgb8(&f32s);
+        assert_eq!(u8s_casted.len(), casted.len());
+        casted
+            .into_iter()
+            .zip(u8s_casted)
+            .for_each(|(a, b)| assert_eq!(a, *b));
     }
 
     #[test]
     fn test_rgba8_to_rgba32() {
-        let src = [[100, 70, 200, 90]; 1024];
-        let casted = cast_slice::<[u8; 4], u8>(&src);
-        let vec4s = rgba8_to_rgba32(casted);
-        assert_eq!(vec4s.len(), src.len());
+        let u8s = [100, 70, 200, 90];
+        let f32s = rgba8_to_rgba32_color(&u8s);
+        let casted = rgba32_to_rgba8_color(&f32s);
         casted
-            .iter()
-            .zip(rgba32_to_rgba8(&vec4s))
-            .for_each(|(a, b)| assert_eq!(*a, b));
+            .into_iter()
+            .zip(u8s)
+            .for_each(|(a, b)| assert_eq!(a, b));
+
+        let u8s = [u8s; 1024];
+        let u8s_casted = cast_slice::<[u8; 4], u8>(&u8s);
+        let f32s = rgba8_to_rgba32(u8s_casted);
+        let casted = rgba32_to_rgba8(&f32s);
+        assert_eq!(u8s_casted.len(), casted.len());
+        casted
+            .into_iter()
+            .zip(u8s_casted)
+            .for_each(|(a, b)| assert_eq!(a, *b));
     }
 
     #[test]
