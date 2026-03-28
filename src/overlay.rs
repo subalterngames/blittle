@@ -169,11 +169,7 @@ pub const fn rgba8_to_rgba32_color(color: &[u8; 4]) -> Vec4 {
 pub fn rgba32_to_rgb8_color(color: &Vec4) -> [u8; 3] {
     let color = color * 256.;
     let color = color.deref();
-    [
-        color.x as u8,
-        color.y as u8,
-        color.z as u8,
-    ]
+    [color.x as u8, color.y as u8, color.z as u8]
 }
 
 /// Convert an RGBA32 color to an RGBA8 color.
@@ -181,12 +177,7 @@ pub fn rgba32_to_rgb8_color(color: &Vec4) -> [u8; 3] {
 pub fn rgba32_to_rgba8_color(color: &Vec4) -> [u8; 4] {
     let color = color * 256.;
     let color = color.deref();
-    [
-        color.x as u8,
-        color.y as u8,
-        color.z as u8,
-        color.w as u8,
-    ]
+    [color.x as u8, color.y as u8, color.z as u8, color.w as u8]
 }
 
 /// Overlay `src` onto `dst` using an `alpha` value.
