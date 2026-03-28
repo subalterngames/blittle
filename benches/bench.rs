@@ -1,6 +1,8 @@
 use blit::{Blit, BlitBuffer, BlitOptions, geom::Size};
 use blittle::*;
 use criterion::{Criterion, criterion_group, criterion_main};
+#[cfg(feature = "overlay")]
+use glam::Vec4;
 use sdl2::{
     pixels::{Color, PixelFormatEnum},
     surface::Surface,
@@ -11,7 +13,10 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     const SRC_H: usize = 512;
     const DST_W: usize = 1920;
     const DST_H: usize = 1080;
-    let src = vec![255u8; SRC_W * SRC_H * PixelType::Rgba8.stride()];
+    const SRC_LEN: usize = SRC_W * SRC_H;
+    const SRC_LEN_STRIDE: usize = SRC_LEN * PixelType::Rgba8.stride();
+
+    let src = vec![255u8; SRC_LEN_STRIDE];
     let mut dst = vec![0u8; DST_W * DST_H * PixelType::Rgba8.stride()];
 
     // Single thread.
@@ -34,7 +39,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
 
     // `blit` crate.
     let mut dst_u32 = vec![0u32; DST_W * DST_H];
-    let src_u32 = vec![255u32; SRC_W * SRC_H];
+    let src_u32 = vec![255u32; SRC_LEN];
     let blit_buffer = BlitBuffer::from_buffer(&src_u32, SRC_W, 0);
     let position = BlitOptions::new_position(dst_position.x, dst_position.y);
     let size = Size {
@@ -59,13 +64,30 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     // Overlay.
     #[cfg(feature = "overlay")]
     {
-        let src = vec![[100, 200, 80]; SRC_W * SRC_H * PixelType::Rgb8.stride()];
+        let src = vec![[100, 200, 80]; SRC_LEN];
         let src = bytemuck::cast_slice::<[u8; 3], u8>(&src);
-        let mut dst = vec![overlay::Vec4::default(); SRC_W * SRC_H];
-        c.bench_function("rgba8 to rgba32", |b| {
+        let mut dst = vec![Vec4::default(); SRC_LEN];
+        c.bench_function("rgb8 to rgba32", |b| {
             b.iter(|| overlay::rgb8_to_rgba32_in_place(&src, &mut dst))
         });
 
+        let src = vec![255; SRC_LEN_STRIDE];
+        c.bench_function("rgba8 to rgba32", |b| {
+            b.iter(|| overlay::rgba8_to_rgba32_in_place(&src, &mut dst))
+        });
+
+        let src = vec![Vec4::ONE; SRC_LEN];
+        let mut dst = vec![0; SRC_LEN_STRIDE];
+        c.bench_function("rgba32 to rgba8", |b| {
+            b.iter(|| overlay::rgba32_to_rgba8_in_place(&src, &mut dst))
+        });
+
+        let mut dst = vec![0; SRC_LEN * 3];
+        c.bench_function("rgba32 to rgb8", |b| {
+            b.iter(|| overlay::rgba32_to_rgb8_in_place(&src, &mut dst))
+        });
+
+        let src = vec![255; SRC_LEN_STRIDE];
         let dst = vec![[19, 100, 234, 190]; DST_W * DST_H * PixelType::Rgba8.stride()];
         let src = overlay::rgba8_to_rgba32(&src);
         let mut dst = overlay::rgba8_to_rgba32(bytemuck::cast_slice::<[u8; 4], u8>(&dst));
