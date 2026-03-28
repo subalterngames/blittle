@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.4
+
+- Improved color conversion performance by 40-60%
+    - All u8 -> f32 conversions, e.g. `rgba8_to_rgba32`, use a look-up table of pre-calculated float values
+    - All f32 -> u8 conversions, e.g. `rgba32_to_rgba8`, exclude unnecessary `ceil()` calls, and deref Vec4s exactly once per pixel
+- Improved accuracy of benchmarks
+- Bumped dependency versions
+
 ## 0.4.3
 
 - Fixed `ClippedRect::set_src_rect()` to handle clipping properly.
