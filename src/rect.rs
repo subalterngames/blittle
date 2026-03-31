@@ -1,5 +1,59 @@
 use crate::{PositionI, PositionU, Size};
+use glam::USizeVec2;
 use std::fmt::{Display, Formatter};
+
+#[derive(Copy, Clone, Debug, Default)]
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
+pub struct Rect {
+    pub position: USizeVec2,
+    pub size: USizeVec2,
+}
+
+impl Rect {
+    pub const fn from_position(position: USizeVec2) -> Self {
+        Self {
+            position,
+            size: USizeVec2::ZERO,
+        }
+    }
+
+    pub const fn from_size(size: USizeVec2) -> Self {
+        Self {
+            position: USizeVec2::ZERO,
+            size,
+        }
+    }
+
+    pub const fn zeroed_position(mut self) -> Self {
+        self.position = USizeVec2::ZERO;
+        self
+    }
+
+    pub const fn overlaps(&self, other: &Self) -> bool {
+        self.position.x <= other.position.x + other.size.x
+            && self.position.x + self.size.x > other.position.x
+            && self.position.y <= other.position.y + other.size.y
+            && self.position.y + self.size.y > other.position.y
+    }
+
+    pub const fn clipped(mut self, other: Self) -> Option<Self> {
+        // Don't try clipping if there is no overlap.
+        if self.overlaps(&other) {
+            // Clip the top-left coordinate.
+
+            // Clip the size.
+            if self.position.x + self.size.x >= other.size.x {
+                self.size.x = other.size.x;
+            }
+            if self.position.y + self.size.y >= other.size.y {
+                self.size.y = other.size.y;
+            }
+        }
+        else{
+            None
+        }
+    }
+}
 
 /// The original destination position and source size, and the position and size used for blitting.
 #[derive(Copy, Clone, Debug, Default)]

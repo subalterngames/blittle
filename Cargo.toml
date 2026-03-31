@@ -19,6 +19,7 @@ serde = { version = "1", features = ["derive"], optional = true}
 [dev-dependencies]
 blit = "0.8.5"
 criterion = "0.8.2"
+num-traits = "0.2.19"
 png = "0.18.0"
 sdl2 = "0.38.0"
 
@@ -29,7 +30,7 @@ harness = false
 [features]
 overlay = ["dep:bytemuck", "dep:glam"]
 rayon = ["dep:rayon"]
-serde = ["dep:serde"]
+serde = ["dep:serde", "glam/serde"]
 
 [package.metadata.docs.rs]
 all-features = true
