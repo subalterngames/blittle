@@ -84,6 +84,10 @@ impl<P: Copy + Clone + Sized + Default> Surface<P> {
         }
     }
 
+    pub const fn unset_area(&mut self) {
+        self.blit_area = None;
+    }
+
     pub fn blit(&self, other: &mut Self) -> Result<(), Error> {
         // Try to get the destination rect.
         let destination_rect = self.destination_rect.ok_or(Error::NoDestinationRect)?;
