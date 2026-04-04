@@ -62,12 +62,14 @@ impl<P: Copy + Clone + Sized + Zero> Surface<P> {
         self.destination_rect
     }
 
-    pub const fn set_area(&mut self, area: RectI) -> Option<RectU> {
-        self.blit_area = match area.clip(self.rect) {
-            Some(area) => Some(area),
-            None => None,
-        };
-        self.blit_area
+    pub const fn set_area(&mut self, area: RectI) -> Result<RectU, Error> {
+        match area.clip(self.rect) {
+            Some(area) => {
+                self.blit_area = Some(area);
+                Ok(area)
+            }
+            None => Err(Error::InvalidArea(area)),
+        }
     }
 
     pub const fn get_index(x: usize, y: usize, w: usize) -> usize {

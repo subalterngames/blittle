@@ -6,7 +6,6 @@ pub mod error;
 mod multi_threaded;
 #[cfg(feature = "overlay")]
 pub mod overlay;
-mod pixel;
 mod pixel_type;
 mod position;
 mod rect;

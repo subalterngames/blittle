@@ -53,17 +53,6 @@ macro_rules! overlaps {
     }};
 }
 
-// Required to let the function be const
-macro_rules! max_coordinate {
-    ($self:expr, $other:expr, $c:ident) => {{
-        if $self.position.$c > $other.position.$c {
-            $other.position.$c
-        } else {
-            $self.position.$c
-        }
-    }};
-}
-
 #[derive(Copy, Clone, Debug, Default)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct RectI {
@@ -118,6 +107,12 @@ impl RectI {
             },
             size: self.size,
         }
+    }
+}
+
+impl Display for RectI {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}, {}", self.position, self.size)
     }
 }
 
