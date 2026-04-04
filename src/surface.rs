@@ -84,10 +84,6 @@ impl<P: Copy + Clone + Sized + Default> Surface<P> {
         }
     }
 
-    pub const fn get_index(x: usize, y: usize, w: usize) -> usize {
-        x + y * w
-    }
-
     pub fn blit(&self, other: &mut Self) -> Result<(), Error> {
         // Try to get the destination rect.
         let destination_rect = self.destination_rect.ok_or(Error::NoDestinationRect)?;
@@ -104,21 +100,23 @@ impl<P: Copy + Clone + Sized + Default> Surface<P> {
         // Iterate per-row.
         (0..blit_area.size.y).for_each(|src_y| {
             // Get the start index in the source slice.
-            let src_index = Self::get_index(
-                blit_area.position.x,         // Blit area offset or zer
+            let src_index = self.get_index(
+                blit_area.position.x,         // Blit area offset or zero
                 src_y + blit_area.position.y, // y offset + blit area offset
-                self.rect.size.x,             // The actual width of the source buffer
             );
-            let dst_index = Self::get_index(
+            let dst_index = other.get_index(
                 destination_rect.position.x,         // Destination position (x)
                 src_y + destination_rect.position.y, // y offset + destination position (y)
-                other.rect.size.x,                   // The actual width of the destination buffer
             );
             // Copy the slice, using the blit area's width.
             other.buffer[dst_index..dst_index + blit_area.size.x]
                 .copy_from_slice(&self.buffer[src_index..src_index + blit_area.size.x]);
         });
         Ok(())
+    }
+
+    const fn get_index(&self, x: usize, y: usize) -> usize {
+        x + y * self.rect.size.x
     }
 }
 
