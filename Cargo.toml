@@ -27,7 +27,6 @@ name = "bench"
 harness = false
 
 [features]
-overlay = []
 serde = ["dep:serde", "glam/serde"]
 
 [package.metadata.docs.rs]
