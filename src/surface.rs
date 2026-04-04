@@ -1,21 +1,27 @@
-use crate::PixelType;
 use crate::error::Error;
 use crate::rect::{RectI, RectU};
-use glam::{I64Vec2, USizeVec2};
-use num_traits::Zero;
+use bytemuck::{cast_slice, cast_slice_mut};
+use glam::{I64Vec2, USizeVec2, Vec4};
 
-pub struct Surface<P: Copy + Clone + Sized + Zero> {
+pub type L8Surface = Surface<u8>;
+pub type La8Surface = Surface<[u8; 2]>;
+pub type Rgb8Surface = Surface<[u8; 3]>;
+pub type Rgba8Surfaace = Surface<[u8; 4]>;
+pub type L32Surface = Surface<f32>;
+pub type Rgba32Surface = Surface<Vec4>;
+
+pub struct Surface<P: Copy + Clone + Sized + Default> {
     rect: RectI,
     buffer: Vec<P>,
     destination_rect: Option<RectU>,
     blit_area: Option<RectU>,
 }
 
-impl<P: Copy + Clone + Sized + Zero> Surface<P> {
+impl<P: Copy + Clone + Sized + Default> Surface<P> {
     pub fn new(size: USizeVec2) -> Self {
         Self {
             rect: RectI::from_size(size),
-            buffer: vec![P::zero(); size.x * size.y],
+            buffer: vec![P::default(); size.x * size.y],
             destination_rect: None,
             blit_area: None,
         }
@@ -58,7 +64,7 @@ impl<P: Copy + Clone + Sized + Zero> Surface<P> {
                 self.destination_rect = Some(rect);
                 Ok(rect)
             }
-            None => Err(Error::InvalidDestinationRect(self.rect, destination.rect))
+            None => Err(Error::InvalidDestinationRect(self.rect, destination.rect)),
         }
     }
 
@@ -109,3 +115,47 @@ impl<P: Copy + Clone + Sized + Zero> Surface<P> {
         Ok(())
     }
 }
+
+pub trait SurfaceBytes {
+    fn bytes(&self) -> &[u8];
+
+    fn bytes_mut(&mut self) -> &mut [u8];
+}
+
+impl SurfaceBytes for L8Surface {
+    fn bytes(&self) -> &[u8] {
+        &self.buffer
+    }
+
+    fn bytes_mut(&mut self) -> &mut [u8] {
+        &mut self.buffer
+    }
+}
+
+impl SurfaceBytes for L32Surface {
+    fn bytes(&self) -> &[u8] {
+        cast_slice::<f32, u8>(&self.buffer)
+    }
+
+    fn bytes_mut(&mut self) -> &mut [u8] {
+        cast_slice_mut::<f32, u8>(&mut self.buffer)
+    }
+}
+
+macro_rules! impl_surface_bytes {
+    ($c:literal) => {
+        impl SurfaceBytes for Surface<[u8; $c]> {
+            fn bytes(&self) -> &[u8] {
+                cast_slice::<[u8; $c], u8>(&self.buffer)
+            }
+
+            fn bytes_mut(&mut self) -> &mut [u8] {
+                cast_slice_mut::<[u8; $c], u8>(&mut self.buffer)
+            }
+        }
+    };
+}
+
+impl_surface_bytes!(2);
+impl_surface_bytes!(3);
+impl_surface_bytes!(4);
