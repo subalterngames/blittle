@@ -3,11 +3,22 @@ use crate::rect::{RectI, RectU};
 use bytemuck::{cast_slice, cast_slice_mut};
 use glam::{I64Vec2, USizeVec2, Vec4};
 
+/// Grayscale.
 pub type L8Surface = Surface<u8>;
+/// Grayscale + alpha.
 pub type La8Surface = Surface<[u8; 2]>;
+/// Red, green, blue.
 pub type Rgb8Surface = Surface<[u8; 3]>;
-pub type Rgba8Surfaace = Surface<[u8; 4]>;
+/// Red, green, blue, alpha. Or, if using softbuffer: zero, red, green, blue.
+pub type Rgba8Surface = Surface<[u8; 4]>;
+/// Zero, red, green, blue. Meant to be used with softbuffer.
+pub type Zrgb8Surface = Surface<u32>;
+/// 32-bit grayscale.
 pub type L32Surface = Surface<f32>;
+/// 32-bit grayscale + alpha.
+pub type La32Surface = Surface<[f32; 2]>;
+/// Red, green, blue, alpha as Vec4s. 
+/// This uses glam for that sweet sweet SIMD, so you can't get the underlying bytes buffer.
 pub type Rgba32Surface = Surface<Vec4>;
 
 pub struct Surface<P: Copy + Clone + Sized + Default> {
@@ -34,11 +45,6 @@ impl<P: Copy + Clone + Sized + Default> Surface<P> {
             destination_rect: None,
             blit_area: None,
         }
-    }
-
-    pub fn filled(mut self, color: P) -> Self {
-        self.fill(color);
-        self
     }
 
     pub fn fill(&mut self, color: P) {
@@ -132,33 +138,26 @@ impl SurfaceBytes for L8Surface {
     }
 }
 
-impl SurfaceBytes for L32Surface {
-    fn bytes(&self) -> &[u8] {
-        cast_slice::<f32, u8>(&self.buffer)
-    }
-
-    fn bytes_mut(&mut self) -> &mut [u8] {
-        cast_slice_mut::<f32, u8>(&mut self.buffer)
-    }
-}
-
 macro_rules! impl_surface_bytes {
-    ($c:literal) => {
-        impl SurfaceBytes for Surface<[u8; $c]> {
+    ($p:ty) => {
+        impl SurfaceBytes for Surface<$p> {
             fn bytes(&self) -> &[u8] {
-                cast_slice::<[u8; $c], u8>(&self.buffer)
+                cast_slice::<$p, u8>(&self.buffer)
             }
 
             fn bytes_mut(&mut self) -> &mut [u8] {
-                cast_slice_mut::<[u8; $c], u8>(&mut self.buffer)
+                cast_slice_mut::<$p, u8>(&mut self.buffer)
             }
         }
     };
 }
 
-impl_surface_bytes!(2);
-impl_surface_bytes!(3);
-impl_surface_bytes!(4);
+impl_surface_bytes!([u8; 2]);
+impl_surface_bytes!([u8; 3]);
+impl_surface_bytes!([u8; 4]);
+impl_surface_bytes!(f32);
+impl_surface_bytes!([f32; 2]);
+impl_surface_bytes!(u32);
 
 #[cfg(test)]
 mod tests {
