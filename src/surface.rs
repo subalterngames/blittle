@@ -159,3 +159,90 @@ macro_rules! impl_surface_bytes {
 impl_surface_bytes!(2);
 impl_surface_bytes!(3);
 impl_surface_bytes!(4);
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::io::Cursor;
+    use std::{fs::File, io::BufWriter, path::Path};
+
+    const SRC_W: usize = 32;
+    const SRC_H: usize = 17;
+    const DST_W: usize = 64;
+    const DST_H: usize = 64;
+
+    #[test]
+    fn test_blit() {
+        let position = I64Vec2 { x: 2, y: 12 };
+        let src_size = USizeVec2 { x: SRC_W, y: SRC_H };
+        let mut src = Surface::new_filled(src_size, [255u8, 255, 255]).position(position);
+        let mut dst = Surface::new_filled(USizeVec2 { x: DST_W, y: DST_H }, [0u8, 255, 255]);
+
+        let rect = src.set_destination(&dst).unwrap();
+        assert_eq!(rect.position, USizeVec2 { x: 2, y: 12 });
+        assert_eq!(rect.size, src_size);
+
+        src.blit(&mut dst).unwrap();
+
+        write_png(
+            "blit.png",
+            cast_slice::<[u8; 3], u8>(&dst.buffer),
+            DST_W as u32,
+            DST_H as u32,
+        );
+    }
+
+    #[test]
+    fn test_clip() {
+        blit_clipped("clip_positive.png", 42, 16);
+        blit_clipped("clip_negative.png", -8, -8);
+    }
+
+    #[test]
+    fn test_src_area() {
+        let src_size = Size { w: 128, h: 128 };
+        let pixel_type = PixelType::Rgb8;
+
+        let src = read_png(include_bytes!("../test_images/text.png"));
+        assert_eq!(src.len(), src_size.w * src_size.h * pixel_type.stride());
+
+        let dst_size = Size { w: 128, h: 128 };
+        let mut dst = vec![255; dst_size.w * dst_size.h * pixel_type.stride()];
+        let mut rect = ClippedRect::new(PositionI { x: 12, y: 13 }, dst_size, src_size).unwrap();
+        rect.set_src_rect(PositionU { x: 20, y: 3 }, Size { w: 50, h: 70 });
+        blit(&src, &mut dst, &rect, &pixel_type);
+        write_png("blit_area.png", &dst, dst_size.w as u32, dst_size.h as u32);
+    }
+
+    fn blit_clipped(name: &str, x: isize, y: isize) {
+        let src = [255u8; SRC_W * SRC_H * RGB];
+        let mut dst = [0u8; DST_W * DST_H * RGB];
+
+        let dst_position = PositionI { x, y };
+        let dst_size = Size { w: DST_W, h: DST_H };
+        let src_size = Size { w: SRC_W, h: SRC_H };
+        let rect = ClippedRect::new(dst_position, dst_size, src_size).unwrap();
+
+        blit(&src, &mut dst, &rect, &PIXEL_TYPE);
+        write_png(name, &dst, DST_W as u32, DST_H as u32);
+    }
+
+    fn read_png(bytes: &[u8]) -> Vec<u8> {
+        let decoder = png::Decoder::new(Cursor::new(bytes));
+        let mut reader = decoder.read_info().unwrap();
+        let mut buf = vec![0; reader.output_buffer_size().unwrap()];
+        let info = reader.next_frame(&mut buf).unwrap();
+        buf[..info.buffer_size()].to_vec()
+    }
+
+    fn write_png(path: &str, dst: &[u8], dst_w: u32, dst_h: u32) {
+        let path = Path::new(path);
+        let file = File::create(path).unwrap();
+        let w = BufWriter::new(file);
+        let mut encoder = png::Encoder::new(w, dst_w, dst_h);
+        encoder.set_color(png::ColorType::Rgb);
+        encoder.set_depth(png::BitDepth::Eight);
+        let mut writer = encoder.write_header().unwrap();
+        writer.write_image_data(dst).unwrap();
+    }
+}
