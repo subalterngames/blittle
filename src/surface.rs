@@ -52,14 +52,14 @@ impl<P: Copy + Clone + Sized + Zero> Surface<P> {
         self.rect
     }
 
-    pub const fn destination(mut self, destination: &Self) -> Self {
-        let _ = self.set_destination(destination);
-        self
-    }
-
-    pub const fn set_destination(&mut self, destination: &Self) -> Option<RectU> {
-        self.destination_rect = self.rect.clip(destination.rect);
-        self.destination_rect
+    pub const fn set_destination(&mut self, destination: &Self) -> Result<RectU, Error> {
+        match self.rect.clip(destination.rect) {
+            Some(rect) => {
+                self.destination_rect = Some(rect);
+                Ok(rect)
+            }
+            None => Err(Error::InvalidDestinationRect(self.rect, destination.rect))
+        }
     }
 
     pub const fn set_area(&mut self, area: RectI) -> Result<RectU, Error> {
