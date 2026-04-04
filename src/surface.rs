@@ -29,6 +29,11 @@ pub struct Surface<P: Copy + Clone + Sized + Default> {
 }
 
 impl<P: Copy + Clone + Sized + Default> Surface<P> {
+    /// Get a new surface. 
+    /// 
+    /// The position defaults to `(0, 0).
+    /// The underlying pixel buffer is set to the pixel's default value (i.e. `[0, 0, 0]`), length `size.x * size.y`.
+    /// The destination rect and blit area both default to None.
     pub fn new(size: USizeVec2) -> Self {
         Self {
             rect: RectI::from_size(size),
@@ -38,6 +43,11 @@ impl<P: Copy + Clone + Sized + Default> Surface<P> {
         }
     }
 
+    /// Get a new surface with color `color`.
+    /// 
+    /// The position defaults to `(0, 0)`.
+    /// The underlying pixel buffer is set to `vec![color; size.x * size.y]`.
+    /// The destination rect and blit area both default to None.
     pub fn new_filled(size: USizeVec2, color: P) -> Self {
         Self {
             rect: RectI::from_size(size),
@@ -47,23 +57,30 @@ impl<P: Copy + Clone + Sized + Default> Surface<P> {
         }
     }
 
+    /// Fill the surface with `color`.
     pub fn fill(&mut self, color: P) {
         self.buffer.fill(color);
     }
 
+    /// Set the top-left position of the surface, relative to the surface it will blit to.
     pub const fn position(mut self, position: I64Vec2) -> Self {
         self.set_position(position);
         self
     }
 
+    /// Set the top-left position of the surface, relative to the surface it will blit to.
     pub const fn set_position(&mut self, position: I64Vec2) {
         self.rect.position = position;
     }
 
+    /// Returns the top-left position and size of the surface.
     pub const fn get_rect(&self) -> RectI {
         self.rect
     }
 
+    /// Prepare to blit to `destination`. This caches values used to clip `self.rect` to be within `destination.rect`.
+    /// 
+    /// You must call this every time `self` is to be blit to a *new* destination, or whenever its position changes.
     pub const fn set_destination(&mut self, destination: &Self) -> Result<RectU, Error> {
         match self.rect.clip(destination.rect) {
             Some(rect) => {
@@ -74,6 +91,9 @@ impl<P: Copy + Clone + Sized + Default> Surface<P> {
         }
     }
 
+    /// Set an `area` within the pixel buffer to blit.
+    /// 
+    /// By default, the area is the entirety of this surface.
     pub const fn set_area(&mut self, area: RectI) -> Result<RectU, Error> {
         match area.clip(self.rect) {
             Some(area) => {
@@ -84,10 +104,15 @@ impl<P: Copy + Clone + Sized + Default> Surface<P> {
         }
     }
 
+    /// The entirety of this surface, rather than an area within it, will blit to the destination surface.
     pub const fn unset_area(&mut self) {
         self.blit_area = None;
     }
 
+    /// Blit onto `other`.
+    /// 
+    /// Be sure to call [`Self::set_destination`] before blitting to a *new* `other`,
+    /// or after setting a new position via [`Self::position`] or [`Self::set_position`].
     pub fn blit(&self, other: &mut Self) -> Result<(), Error> {
         // Try to get the destination rect.
         let destination_rect = self.destination_rect.ok_or(Error::NoDestinationRect)?;
@@ -124,6 +149,10 @@ impl<P: Copy + Clone + Sized + Default> Surface<P> {
     }
 }
 
+/// Get the underlying pixel buffer as bytes.
+/// 
+/// This has been implemented for most of the common surface types, 
+/// but not [`Rgba32Surface`], because it uses [`glam::Vec4`], which can't directly be cast to bytes.
 pub trait SurfaceBytes {
     fn bytes(&self) -> &[u8];
 
