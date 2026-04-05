@@ -62,26 +62,26 @@ impl<P: Copy + Clone + Sized + Default> Surface<P> {
         self.buffer.fill(color);
     }
 
-    /// Set the top-left position of the surface, relative to the surface it will blit to.
-    pub const fn position(mut self, position: I64Vec2) -> Self {
-        self.set_position(position);
-        self
-    }
-
-    /// Set the top-left position of the surface, relative to the surface it will blit to.
-    pub const fn set_position(&mut self, position: I64Vec2) {
-        self.rect.position = position;
-    }
-
-    /// Returns the top-left position and size of the surface.
-    pub const fn get_rect(&self) -> RectI {
-        self.rect
-    }
-
-    /// Prepare to blit to `destination`. This caches values used to clip `self.rect` to be within `destination.rect`.
+    /// Set the top-left position of the surface, relative to the surface it will blit to `destination`.
     ///
-    /// You must call this every time `self` is to be blit to a *new* destination, or whenever its position changes.
-    pub const fn set_destination(&mut self, destination: &Self) -> Result<RectU, Error> {
+    /// This also sets the clipped blitting area within `destination`.
+    ///
+    /// Returns an error if the clipped blitting area is not within `destination`.
+    pub fn position(mut self, position: I64Vec2, destination: &Self) -> Result<Self, Error> {
+        self.set_position(position, destination).map(|_| self)
+    }
+
+    /// Set the top-left position of the surface, relative to the surface it will blit to `destination`.
+    ///
+    /// This also sets the clipped blitting area within `destination`, which is the return value.
+    ///
+    /// Returns an error if the clipped blitting area is not within `destination`.
+    pub const fn set_position(
+        &mut self,
+        position: I64Vec2,
+        destination: &Self,
+    ) -> Result<RectU, Error> {
+        self.rect.position = position;
         match self.rect.clip(destination.rect) {
             Some(rect) => {
                 self.destination_rect = Some(rect);
@@ -91,22 +91,32 @@ impl<P: Copy + Clone + Sized + Default> Surface<P> {
         }
     }
 
-    /// Set an `area` within the pixel buffer to blit.
-    ///
-    /// By default, the area is the entirety of this surface.
-    pub const fn set_area(&mut self, area: RectI) -> Result<RectU, Error> {
-        match area.clip(self.rect) {
-            Some(area) => {
-                self.blit_area = Some(area);
-                Ok(area)
-            }
-            None => Err(Error::InvalidArea(area)),
-        }
+    /// Returns the top-left position and size of the surface.
+    pub const fn get_rect(&self) -> RectI {
+        self.rect
     }
 
-    /// The entirety of this surface, rather than an area within it, will blit to the destination surface.
-    pub const fn unset_area(&mut self) {
-        self.blit_area = None;
+    /// Set an `area` within the pixel buffer to blit.
+    ///
+    /// If `area` is None, then the entirety of this surface will blit (this is the default behavior).
+    pub fn area(mut self, area: Option<RectI>) -> Result<Self, Error> {
+        self.set_area(area).map(|_| self)
+    }
+
+    /// Set an `area` within the pixel buffer to blit.
+    ///
+    /// If `area` is None, then the entirety of this surface will blit (this is the default behavior).
+    pub const fn set_area(&mut self, area: Option<RectI>) -> Result<Option<RectU>, Error> {
+        match area {
+            Some(area) => match area.clip(self.rect) {
+                Some(area) => {
+                    self.blit_area = Some(area);
+                    Ok(self.blit_area)
+                }
+                None => Err(Error::InvalidArea(area)),
+            },
+            None => Ok(None),
+        }
     }
 
     /// Blit onto `other`.
