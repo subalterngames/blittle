@@ -149,15 +149,40 @@ impl<P: Copy + Clone + Sized + Default> Surface<P> {
         &self.buffer
     }
 
+    /// Iterate through the pixel buffer per-row, top to bottom.
     pub fn rows(&self) -> impl Iterator<Item = &[P]> {
         self.buffer.chunks_exact(self.rect.size.x)
     }
 
+    /// Iterate through the pixel buffer per-row, top to bottom.
     pub fn rows_mut(&mut self) -> impl Iterator<Item = &mut [P]> {
         self.buffer.chunks_exact_mut(self.rect.size.x)
     }
 
-    const fn get_index(&self, x: usize, y: usize) -> usize {
+    /// Set the color of the pixel at (x, y).
+    ///
+    /// Returns an error if (x, y) is out of bounds.
+    pub fn set_pixel_checked(&mut self, x: usize, y: usize, color: P) -> Result<(), Error> {
+        if x < self.rect.size.x && y < self.rect.size.y {
+            self.set_pixel_unchecked(x, y, color);
+            Ok(())
+        } else {
+            Err(Error::SetPixel {
+                x,
+                y,
+                size: self.rect.size,
+            })
+        }
+    }
+
+    /// Set the color of the pixel at (x, y).
+    pub fn set_pixel_unchecked(&mut self, x: usize, y: usize, color: P) {
+        let index = self.get_index(x, y);
+        self.buffer[index] = color;
+    }
+
+    /// Convert (x, y) coordinates into an index value within the underlying pixel buffer.
+    pub const fn get_index(&self, x: usize, y: usize) -> usize {
         x + y * self.rect.size.x
     }
 }

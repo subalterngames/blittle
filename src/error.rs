@@ -1,3 +1,4 @@
+use glam::USizeVec2;
 use thiserror::Error;
 
 use crate::rect::RectI;
@@ -10,4 +11,6 @@ pub enum Error {
     InvalidDestinationRect(RectI, RectI),
     #[error("Invalid blit area: {0}")]
     InvalidArea(RectI),
+    #[error("Pixel ({x}, {y}) out of bounds of this surface of size: {size}")]
+    SetPixel { x: usize, y: usize, size: USizeVec2 },
 }
