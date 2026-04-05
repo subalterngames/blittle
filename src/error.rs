@@ -16,6 +16,8 @@ pub enum Error {
     InvalidArea(RectI),
     #[error("Pixel ({x}, {y}) out of bounds of this surface of size: {size}")]
     PixelPosition { x: usize, y: usize, size: USizeVec2 },
+    #[error("Invalid mask size. Expected: {expected} Got: {actual}")]
+    MaskSize { actual: usize, expected: usize },
     #[cfg(feature = "png")]
     #[error("Failed to write to {0} Reason: {1}")]
     PngFile(PathBuf, std::io::Error),

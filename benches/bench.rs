@@ -55,6 +55,10 @@ pub fn criterion_benchmark(c: &mut Criterion) {
         b.iter(|| src_surface.blit(src_rect, &mut dst_surface, None))
     });
 
+    let mut src = MaskedSurface::new(src);
+    src.mask_mut().iter_mut().for_each(|m| *m = true);
+    c.bench_function("blittle mask", |b| b.iter(|| src.blit(&mut dst)));
+
     get_rgba32!(c, Rgb8Surface, "rgb8");
     let src = Rgb8Surface::new(USizeVec2::new(SRC_W, SRC_H));
     let mut dst = Rgba32Surface::new(USizeVec2::new(SRC_W, SRC_H));

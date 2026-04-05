@@ -206,7 +206,7 @@ pub struct Surface<P: Copy + Clone + Sized + Default> {
 impl<P: Copy + Clone + Sized + Default> Surface<P> {
     /// Get a new surface.
     ///
-    /// The position defaults to `(0, 0).
+    /// The position defaults to `(0, 0)`.
     /// The underlying pixel buffer is set to the pixel's default value (i.e. `[0, 0, 0]`), length `size.x * size.y`.
     /// The destination rect and blit area both default to None.
     pub fn new(size: USizeVec2) -> Self {
@@ -234,8 +234,8 @@ impl<P: Copy + Clone + Sized + Default> Surface<P> {
 
     /// Blit onto `other`.
     ///
-    /// Be sure to call [`Self::set_destination`] before blitting to a *new* `other`,
-    /// or after setting a new position via [`Self::position`] or [`Self::set_position`].
+    /// Be sure to call [Self::position] or [Self::set_position]
+    /// before blitting to a *new* `other` surface.
     pub fn blit(&self, other: &mut Self) -> Result<(), Error> {
         // Try to get the destination rect.
         let destination_rect = self.destination_rect.ok_or(Error::NoDestinationRect)?;
