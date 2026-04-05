@@ -8,6 +8,8 @@ use crate::rect::RectI;
 pub enum Error {
     #[error("The destination hasn't been set.")]
     NoDestinationRect,
+    #[error("Tried to set the area before setting the position relative to the destination.")]
+    AreaBeforePosition,
     #[error("Failed to set destination rect. From: {0} To: {1}")]
     InvalidDestinationRect(RectI, RectI),
     #[error("Invalid blit area: {0}")]
@@ -20,6 +22,7 @@ pub enum Error {
     #[cfg(feature = "png")]
     #[error("Failed to write png header: {0}")]
     PngHeader(png::EncodingError),
+    #[cfg(feature = "png")]
     #[error("Failed to write png pixel data: {0}")]
     PngPixels(png::EncodingError),
 }

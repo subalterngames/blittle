@@ -1,6 +1,4 @@
-use crate::surface::Surface;
 use crate::{Rgb8Surface, Rgba8Surface, Rgba32Surface};
-use bytemuck::cast_slice;
 use glam::Vec4;
 use std::ops::Deref;
 
@@ -105,14 +103,6 @@ macro_rules! floats_to_bytes {
             other.blit_area = $self.blit_area;
         }
     };
-}
-
-/// Convert an RGBA32 color to an RGBA8 color.
-#[inline]
-pub fn rgba32_to_rgba8_color(color: &Vec4) -> [u8; 4] {
-    let color = color * 256.;
-    let color = color.deref();
-    [color.x as u8, color.y as u8, color.z as u8, color.w as u8]
 }
 
 impl Rgb8Surface {

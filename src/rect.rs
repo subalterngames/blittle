@@ -13,32 +13,19 @@ macro_rules! clip_top_left {
 
 macro_rules! clip_bottom_right {
     ($position:ident, $size:ident, $other:ident, $c:ident) => {{
-        let d1 = $position.$c + $size.$c;
-        if d1 > $other.size.$c {
-            $size.$c = $other.size.$c - d1;
+        if $position.$c + $size.$c > $other.size.$c {
+            $size.$c = $other.size.$c - $position.$c;
         }
     }};
 }
 
-macro_rules! position_size {
+macro_rules! size {
     ($t:tt) => {
-        pub const fn from_position(position: $t) -> Self {
-            Self {
-                position,
-                size: USizeVec2::ZERO,
-            }
-        }
-
         pub const fn from_size(size: USizeVec2) -> Self {
             Self {
                 position: $t::ZERO,
                 size,
             }
-        }
-
-        pub const fn zeroed_position(mut self) -> Self {
-            self.position = $t::ZERO;
-            self
         }
     };
 }
@@ -60,7 +47,7 @@ pub struct RectI {
 }
 
 impl RectI {
-    position_size!(I64Vec2);
+    size!(I64Vec2);
 
     pub const fn new(position: I64Vec2, size: USizeVec2) -> Option<Self> {
         if size.x == 0 || size.y == 0 {
@@ -123,7 +110,7 @@ pub struct RectU {
 }
 
 impl RectU {
-    position_size!(USizeVec2);
+    size!(USizeVec2);
 
     pub const fn overlaps(&self, other: &Self) -> bool {
         overlaps!(self, other, other.size.x, other.size.y)

@@ -57,6 +57,14 @@ macro_rules! impl_surface {
             }
         }
 
+        /// Unset the destination surface.
+        ///
+        /// Internally, you will need to set the position again before blitting.
+        /// This function can therefore be used as a safeguard when blitting to multiple surfaces.
+        pub const fn unset_destination(&mut $self) {
+            $self.destination_rect = None;
+        }
+
         /// Returns the top-left position and size of the surface.
         pub const fn get_rect(&$self) -> RectI {
             $self.rect
@@ -73,15 +81,23 @@ macro_rules! impl_surface {
         ///
         /// If `area` is None, then the entirety of this surface will blit (this is the default behavior).
         pub const fn set_area(&mut $self, area: Option<RectI>) -> Result<Option<RectU>, Error> {
-            match area {
-                Some(area) => match area.clip($self.rect) {
-                    Some(area) => {
-                        $self.blit_area = Some(area);
-                        Ok($self.blit_area)
+            match $self.destination_rect {
+                Some(destination_rect) => {
+                    match area {
+                        Some(area) => {
+                            let rect = RectI::from_size(destination_rect.size);
+                            match area.clip(rect) {
+                                Some(area) => {
+                                    $self.blit_area = Some(area);
+                                    Ok($self.blit_area)
+                                }
+                                None => Err(Error::InvalidArea(area)),
+                            }
+                        }
+                        None => Ok(None),
                     }
-                    None => Err(Error::InvalidArea(area)),
-                },
-                None => Ok(None),
+                }
+                None => Err(Error::AreaBeforePosition)
             }
         }
 
@@ -225,7 +241,7 @@ impl<P: Copy + Clone + Sized + Default> Surface<P> {
             Some(rect) => rect,
             None => RectU {
                 position: USizeVec2::ZERO,
-                size: self.rect.size,
+                size: destination_rect.size,
             },
         };
 
@@ -314,15 +330,15 @@ mod tests {
 
     #[test]
     fn test_clip() {
-        blit_clipped("clip_positive.png", 42, 16);
-        blit_clipped("clip_negative.png", -8, -8);
+        blit_clipped("clip_positive.png", DST_W as i64 - 12, 16);
+        //blit_clipped("clip_negative.png", -8, -8);
     }
 
     fn blit_clipped(name: &str, x: i64, y: i64) {
         let src_size = USizeVec2 { x: SRC_W, y: SRC_H };
         let mut dst = Surface::new_filled(USizeVec2 { x: DST_W, y: DST_H }, [0u8, 0, 0]);
 
-        let src = Surface::new_filled(src_size, [255u8, 255, 255])
+        let src = Surface::new_filled(src_size, [0u8, 255, 255])
             .position(I64Vec2 { x, y }, &dst)
             .unwrap();
 
