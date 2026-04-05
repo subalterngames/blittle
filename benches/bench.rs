@@ -1,8 +1,7 @@
 use blit::{Blit, BlitBuffer, BlitOptions, geom::Size};
 use blittle::*;
 use criterion::{Criterion, criterion_group, criterion_main};
-#[cfg(feature = "overlay")]
-use glam::Vec4;
+use glam::{I64Vec2, USizeVec2};
 use sdl2::{
     pixels::{Color, PixelFormatEnum},
     surface::Surface,
@@ -14,34 +13,19 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     const DST_W: usize = 1920;
     const DST_H: usize = 1080;
     const SRC_LEN: usize = SRC_W * SRC_H;
-    const SRC_LEN_STRIDE: usize = SRC_LEN * PixelType::Rgba8.stride();
 
-    let src = vec![255u8; SRC_LEN_STRIDE];
-    let mut dst = vec![0u8; DST_W * DST_H * PixelType::Rgba8.stride()];
-
-    // Single thread.
-    let dst_position = PositionI { x: 2, y: 12 };
-    let dst_size = blittle::Size { w: DST_W, h: DST_H };
-    let src_size = blittle::Size { w: SRC_W, h: SRC_H };
-    let rect = ClippedRect::new(dst_position, dst_size, src_size).unwrap();
-    c.bench_function("blittle", |b| {
-        b.iter(|| blit(&src, &mut dst, &rect, &PixelType::Rgba8))
-    });
-
-    // Multi-thread.
-    #[cfg(feature = "rayon")]
-    {
-        let num_threads = 16.max(rayon::max_num_threads());
-        c.bench_function("blittle multi-threaded", |b| {
-            b.iter(|| blit_multi_threaded(&src, &mut dst, &rect, &PixelType::Rgba8, num_threads))
-        });
-    }
+    let position = I64Vec2::new(2, 12);
+    let mut dst = Rgba8Surface::new_filled(USizeVec2::new(DST_W, DST_H), [255; 4]);
+    let src = Rgba8Surface::new(USizeVec2::new(SRC_W, SRC_H))
+        .position(position, &dst)
+        .unwrap();
+    c.bench_function("blittle", |b| b.iter(|| src.blit(&mut dst)));
 
     // `blit` crate.
     let mut dst_u32 = vec![0u32; DST_W * DST_H];
     let src_u32 = vec![255u32; SRC_LEN];
     let blit_buffer = BlitBuffer::from_buffer(&src_u32, SRC_W, 0);
-    let position = BlitOptions::new_position(dst_position.x, dst_position.y);
+    let position = BlitOptions::new_position(position.x, position.y);
     let size = Size {
         width: DST_W as u32,
         height: DST_H as u32,

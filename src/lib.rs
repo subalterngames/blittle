@@ -3,7 +3,7 @@
 
 pub mod error;
 #[cfg(feature = "png")]
-pub mod png;
+mod png;
 mod rect;
 mod rgba32;
 mod surface;
