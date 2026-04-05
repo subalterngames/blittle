@@ -17,7 +17,7 @@ pub type Zrgb8Surface = Surface<u32>;
 pub type L32Surface = Surface<f32>;
 /// 32-bit grayscale + alpha.
 pub type La32Surface = Surface<[f32; 2]>;
-/// Red, green, blue, alpha as Vec4s. 
+/// Red, green, blue, alpha as Vec4s.
 /// This uses glam for that sweet sweet SIMD, so you can't get the underlying bytes buffer.
 pub type Rgba32Surface = Surface<Vec4>;
 
@@ -29,8 +29,8 @@ pub struct Surface<P: Copy + Clone + Sized + Default> {
 }
 
 impl<P: Copy + Clone + Sized + Default> Surface<P> {
-    /// Get a new surface. 
-    /// 
+    /// Get a new surface.
+    ///
     /// The position defaults to `(0, 0).
     /// The underlying pixel buffer is set to the pixel's default value (i.e. `[0, 0, 0]`), length `size.x * size.y`.
     /// The destination rect and blit area both default to None.
@@ -44,7 +44,7 @@ impl<P: Copy + Clone + Sized + Default> Surface<P> {
     }
 
     /// Get a new surface with color `color`.
-    /// 
+    ///
     /// The position defaults to `(0, 0)`.
     /// The underlying pixel buffer is set to `vec![color; size.x * size.y]`.
     /// The destination rect and blit area both default to None.
@@ -79,7 +79,7 @@ impl<P: Copy + Clone + Sized + Default> Surface<P> {
     }
 
     /// Prepare to blit to `destination`. This caches values used to clip `self.rect` to be within `destination.rect`.
-    /// 
+    ///
     /// You must call this every time `self` is to be blit to a *new* destination, or whenever its position changes.
     pub const fn set_destination(&mut self, destination: &Self) -> Result<RectU, Error> {
         match self.rect.clip(destination.rect) {
@@ -92,7 +92,7 @@ impl<P: Copy + Clone + Sized + Default> Surface<P> {
     }
 
     /// Set an `area` within the pixel buffer to blit.
-    /// 
+    ///
     /// By default, the area is the entirety of this surface.
     pub const fn set_area(&mut self, area: RectI) -> Result<RectU, Error> {
         match area.clip(self.rect) {
@@ -110,7 +110,7 @@ impl<P: Copy + Clone + Sized + Default> Surface<P> {
     }
 
     /// Blit onto `other`.
-    /// 
+    ///
     /// Be sure to call [`Self::set_destination`] before blitting to a *new* `other`,
     /// or after setting a new position via [`Self::position`] or [`Self::set_position`].
     pub fn blit(&self, other: &mut Self) -> Result<(), Error> {
@@ -144,51 +144,58 @@ impl<P: Copy + Clone + Sized + Default> Surface<P> {
         Ok(())
     }
 
+    /// The underlying pixel buffer.
+    pub fn buffer(&self) -> &[P] {
+        &self.buffer
+    }
+
+    pub fn rows(&self) -> impl Iterator<Item = &[P]> {
+        self.buffer.chunks_exact(self.rect.size.x)
+    }
+
+    pub fn rows_mut(&mut self) -> impl Iterator<Item = &mut [P]> {
+        self.buffer.chunks_exact_mut(self.rect.size.x)
+    }
+
     const fn get_index(&self, x: usize, y: usize) -> usize {
         x + y * self.rect.size.x
     }
 }
 
-/// Get the underlying pixel buffer as bytes.
-/// 
-/// This has been implemented for most of the common surface types, 
-/// but not [`Rgba32Surface`], because it uses [`glam::Vec4`], which can't directly be cast to bytes.
-pub trait SurfaceBytes {
-    fn bytes(&self) -> &[u8];
-
-    fn bytes_mut(&mut self) -> &mut [u8];
-}
-
-impl SurfaceBytes for L8Surface {
-    fn bytes(&self) -> &[u8] {
+impl L8Surface {
+    /// The underlying buffer as bytes.
+    pub fn bytes(&self) -> &[u8] {
         &self.buffer
     }
 
-    fn bytes_mut(&mut self) -> &mut [u8] {
+    /// The underlying mutable buffer as bytes.
+    pub fn bytes_mut(&mut self) -> &mut [u8] {
         &mut self.buffer
     }
 }
 
-macro_rules! impl_surface_bytes {
+macro_rules! impl_bytes {
     ($p:ty) => {
-        impl SurfaceBytes for Surface<$p> {
-            fn bytes(&self) -> &[u8] {
+        impl Surface<$p> {
+            /// The underlying buffer as bytes.
+            pub fn bytes(&self) -> &[u8] {
                 cast_slice::<$p, u8>(&self.buffer)
             }
 
-            fn bytes_mut(&mut self) -> &mut [u8] {
+            /// The underlying mutable buffer as bytes.
+            pub fn bytes_mut(&mut self) -> &mut [u8] {
                 cast_slice_mut::<$p, u8>(&mut self.buffer)
             }
         }
     };
 }
 
-impl_surface_bytes!([u8; 2]);
-impl_surface_bytes!([u8; 3]);
-impl_surface_bytes!([u8; 4]);
-impl_surface_bytes!(f32);
-impl_surface_bytes!([f32; 2]);
-impl_surface_bytes!(u32);
+impl_bytes!([u8; 2]);
+impl_bytes!([u8; 3]);
+impl_bytes!([u8; 4]);
+impl_bytes!(f32);
+impl_bytes!([f32; 2]);
+impl_bytes!(u32);
 
 #[cfg(test)]
 mod tests {
