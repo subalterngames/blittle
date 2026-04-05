@@ -1,6 +1,6 @@
 use crate::error::Error;
 use crate::rect::{RectI, RectU};
-use bytemuck::{cast_slice, cast_slice_mut, cast_vec};
+use bytemuck::{cast_slice, cast_slice_mut};
 use glam::{I64Vec2, USizeVec2, Vec4};
 
 /// Grayscale.
@@ -150,9 +150,10 @@ macro_rules! impl_surface {
     };
 }
 
-macro_rules! impl_bytes {
-    ($p:ty) => {
-        impl Surface<$p> {
+// Expose bytes for a kind of surface.
+macro_rules! impl_bytes_inner {
+    ($s:tt, $p:ty $(,$lt:lifetime)?) => {
+        impl $s<$($lt,)? $p> {
             /// The underlying buffer as bytes.
             pub fn bytes(&self) -> &[u8] {
                 cast_slice::<$p, u8>(&self.buffer)
@@ -163,6 +164,15 @@ macro_rules! impl_bytes {
                 cast_slice_mut::<$p, u8>(&mut self.buffer)
             }
         }
+    };
+}
+
+// Expose bytes for Surface and SurfaceRef.
+macro_rules! impl_bytes {
+    ($p:ty) => {
+        impl_bytes_inner!(Surface, $p);
+
+        impl_bytes_inner!(SurfaceRef, $p, '_);
     };
 }
 
@@ -266,6 +276,8 @@ impl Zrgb8Surface {
     /// NOTE: that the returned value does *not* contain RGBA values!
     /// This is because ZRGB is meant to be used with [softbuffer](https://docs.rs/softbuffer/latest/softbuffer/).
     /// The pixel layout is: `[z, r, g, b]` where `z` is always 0.
+    ///
+    /// NOTE: Setting the position, area, etc. will NOT modify the original surface.
     pub fn as_rgba_ref(&mut self) -> SurfaceRef<'_, [u8; 4]> {
         SurfaceRef {
             rect: self.rect,
@@ -279,6 +291,8 @@ impl Zrgb8Surface {
 impl Rgba8Surface {
     /// View this surface as a mutable ZRGB surface reference.
     /// Useful for integration with [softbuffer](https://docs.rs/softbuffer/latest/softbuffer/).
+    ///
+    /// NOTE: Setting the position, area, etc. will NOT modify the original surface.
     pub fn as_zrgb_ref(&mut self) -> SurfaceRef<'_, u32> {
         SurfaceRef {
             rect: self.rect,
