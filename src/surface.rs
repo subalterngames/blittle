@@ -159,6 +159,27 @@ impl<P: Copy + Clone + Sized + Default> Surface<P> {
         self.buffer.chunks_exact_mut(self.rect.size.x)
     }
 
+    /// Returns the color of the pixel at (x, y).
+    ///
+    /// Returns an error if (x, y) is out of bounds.
+    pub fn get_pixel_checked(&self, x: usize, y: usize) -> Result<P, Error> {
+        if x < self.rect.size.x && y < self.rect.size.y {
+            Ok(self.get_pixel_unchecked(x, y))
+        } else {
+            Err(Error::PixelPosition {
+                x,
+                y,
+                size: self.rect.size,
+            })
+        }
+    }
+
+    /// Returns the color of the pixel at (x, y).
+    pub fn get_pixel_unchecked(&self, x: usize, y: usize) -> P {
+        let index = self.get_index(x, y);
+        self.buffer[index]
+    }
+
     /// Set the color of the pixel at (x, y).
     ///
     /// Returns an error if (x, y) is out of bounds.
@@ -167,7 +188,7 @@ impl<P: Copy + Clone + Sized + Default> Surface<P> {
             self.set_pixel_unchecked(x, y, color);
             Ok(())
         } else {
-            Err(Error::SetPixel {
+            Err(Error::PixelPosition {
                 x,
                 y,
                 size: self.rect.size,
