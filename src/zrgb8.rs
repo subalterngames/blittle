@@ -12,7 +12,7 @@ impl Zrgb8Surface {
     /// NOTE: Setting the position, area, etc. will NOT modify the original surface.
     pub fn as_rgba_ref(&mut self) -> SurfaceRef<'_, [u8; 4]> {
         SurfaceRef {
-            rect: self.rect,
+            size: self.size,
             buffer: cast_slice_mut::<u32, [u8; 4]>(&mut self.buffer),
             destination_rect: self.destination_rect,
             blit_area: self.blit_area,
@@ -27,7 +27,7 @@ impl Rgba8Surface {
     /// NOTE: Setting the position, area, etc. will NOT modify the original surface.
     pub fn as_zrgb_ref(&mut self) -> SurfaceRef<'_, u32> {
         SurfaceRef {
-            rect: self.rect,
+            size: self.size,
             buffer: cast_slice_mut::<[u8; 4], u32>(&mut self.buffer),
             destination_rect: self.destination_rect,
             blit_area: self.blit_area,

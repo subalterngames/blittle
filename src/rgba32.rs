@@ -51,7 +51,7 @@ macro_rules! bytes_to_floats {
                 .map(|pixel| Self::pixel_to_rgba32(pixel))
                 .collect();
             Rgba32Surface {
-                rect: $self.rect,
+                size: $self.size,
                 buffer,
                 destination_rect: $self.destination_rect,
                 blit_area: $self.blit_area,
@@ -66,7 +66,7 @@ macro_rules! bytes_to_floats {
                 .for_each(|(src, dst)| {
                     *dst = Self::pixel_to_rgba32(src);
                 });
-            other.rect = $self.rect;
+            other.size = $self.size;
             other.destination_rect = $self.destination_rect;
             other.blit_area = $self.blit_area;
         }
@@ -83,7 +83,7 @@ macro_rules! floats_to_bytes {
                 .map(|pixel| Self::$pixel(pixel))
                 .collect();
             $dest {
-                rect: $self.rect,
+                size: $self.size,
                 buffer,
                 destination_rect: $self.destination_rect,
                 blit_area: $self.blit_area,
@@ -98,7 +98,7 @@ macro_rules! floats_to_bytes {
                 .for_each(|(src, dst)| {
                     *dst = Self::$pixel(src);
                 });
-            other.rect = $self.rect;
+            other.size = $self.size;
             other.destination_rect = $self.destination_rect;
             other.blit_area = $self.blit_area;
         }

@@ -11,8 +11,7 @@ macro_rules! impl_png {
                 let file = File::create(path.as_ref())
                     .map_err(|e| Error::PngFile(path.as_ref().to_path_buf(), e))?;
                 let w = BufWriter::new(file);
-                let mut encoder =
-                    png::Encoder::new(w, self.rect.size.x as u32, self.rect.size.y as u32);
+                let mut encoder = png::Encoder::new(w, self.size.x as u32, self.size.y as u32);
                 encoder.set_color(png::ColorType::$color_type);
                 encoder.set_depth(png::BitDepth::$bit_depth);
                 let mut writer = encoder.write_header().map_err(Error::PngHeader)?;

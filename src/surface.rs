@@ -47,27 +47,23 @@ macro_rules! impl_surface {
             position: I64Vec2,
             destination: &Self,
         ) -> Result<RectU, Error> {
-            $self.rect.position = position;
-            match $self.rect.clip(destination.rect) {
+            let rect = RectI {
+                position,
+                size: $self.size
+            };
+            let destination_rect = RectI::from_size(destination.size);
+            match rect.clip(destination_rect) {
                 Some(rect) => {
                     $self.destination_rect = Some(rect);
                     Ok(rect)
                 }
-                None => Err(Error::InvalidDestinationRect($self.rect, destination.rect)),
+                None => Err(Error::InvalidDestinationRect(rect, destination_rect)),
             }
         }
 
-        /// Unset the destination surface.
-        ///
-        /// Internally, you will need to set the position again before blitting.
-        /// This function can therefore be used as a safeguard when blitting to multiple surfaces.
-        pub const fn unset_destination(&mut $self) {
-            $self.destination_rect = None;
-        }
-
-        /// Returns the top-left position and size of the surface.
-        pub const fn get_rect(&$self) -> RectI {
-            $self.rect
+        /// Returns the size of the surface.
+        pub const fn get_size(&$self) -> USizeVec2 {
+            $self.size
         }
 
         /// Set an `area` within the pixel buffer to blit.
@@ -101,68 +97,76 @@ macro_rules! impl_surface {
             }
         }
 
-         /// The underlying pixel buffer.
-    pub fn buffer(&$self) -> &[P] {
-        &$self.buffer
-    }
-
-    /// Iterate through the pixel buffer per-row, top to bottom.
-    pub fn rows(&$self) -> impl Iterator<Item = &[P]> {
-        $self.buffer.chunks_exact($self.rect.size.x)
-    }
-
-    /// Iterate through the pixel buffer per-row, top to bottom.
-    pub fn rows_mut(&mut $self) -> impl Iterator<Item = &mut [P]> {
-        $self.buffer.chunks_exact_mut($self.rect.size.x)
-    }
-
-    /// Returns the color of the pixel at (x, y).
-    ///
-    /// Returns an error if (x, y) is out of bounds.
-    pub fn get_pixel_checked(&$self, x: usize, y: usize) -> Result<P, Error> {
-        if x < $self.rect.size.x && y < $self.rect.size.y {
-            Ok($self.get_pixel_unchecked(x, y))
-        } else {
-            Err(Error::PixelPosition {
-                x,
-                y,
-                size: $self.rect.size,
-            })
+        /// The underlying pixel buffer.
+        pub fn buffer(&$self) -> &[P] {
+            &$self.buffer
         }
-    }
 
-    /// Returns the color of the pixel at (x, y).
-    pub fn get_pixel_unchecked(&$self, x: usize, y: usize) -> P {
-        let index = $self.get_index(x, y);
-        $self.buffer[index]
-    }
-
-    /// Set the color of the pixel at (x, y).
-    ///
-    /// Returns an error if (x, y) is out of bounds.
-    pub fn set_pixel_checked(&mut $self, x: usize, y: usize, color: P) -> Result<(), Error> {
-        if x < $self.rect.size.x && y < $self.rect.size.y {
-            $self.set_pixel_unchecked(x, y, color);
-            Ok(())
-        } else {
-            Err(Error::PixelPosition {
-                x,
-                y,
-                size: $self.rect.size,
-            })
+        /// Iterate through the pixel buffer per-row, top to bottom.
+        pub fn rows(&$self) -> impl Iterator<Item = &[P]> {
+            $self.buffer.chunks_exact($self.size.x)
         }
-    }
 
-    /// Set the color of the pixel at (x, y).
-    pub fn set_pixel_unchecked(&mut $self, x: usize, y: usize, color: P) {
-        let index = $self.get_index(x, y);
-        $self.buffer[index] = color;
-    }
+        /// Iterate through the pixel buffer per-row, top to bottom.
+        pub fn rows_mut(&mut $self) -> impl Iterator<Item = &mut [P]> {
+            $self.buffer.chunks_exact_mut($self.size.x)
+        }
 
-    /// Convert (x, y) coordinates into an index value within the underlying pixel buffer.
-    pub const fn get_index(&$self, x: usize, y: usize) -> usize {
-        x + y * $self.rect.size.x
-    }
+        /// Returns the color of the pixel at (x, y).
+        ///
+        /// Returns an error if (x, y) is out of bounds.
+        pub fn get_pixel_checked(&$self, x: usize, y: usize) -> Result<P, Error> {
+            if x < $self.size.x && y < $self.size.y {
+                Ok($self.get_pixel_unchecked(x, y))
+            } else {
+                Err(Error::PixelPosition {
+                    x,
+                    y,
+                    size: $self.size,
+                })
+            }
+        }
+
+        /// Returns the color of the pixel at (x, y).
+        pub fn get_pixel_unchecked(&$self, x: usize, y: usize) -> P {
+            let index = $self.get_index(x, y);
+            $self.buffer[index]
+        }
+
+        /// Set the color of the pixel at (x, y).
+        ///
+        /// Returns an error if (x, y) is out of bounds.
+        pub fn set_pixel_checked(&mut $self, x: usize, y: usize, color: P) -> Result<(), Error> {
+            if x < $self.size.x && y < $self.size.y {
+                $self.set_pixel_unchecked(x, y, color);
+                Ok(())
+            } else {
+                Err(Error::PixelPosition {
+                    x,
+                    y,
+                    size: $self.size,
+                })
+            }
+        }
+
+        /// Set the color of the pixel at (x, y).
+        pub fn set_pixel_unchecked(&mut $self, x: usize, y: usize, color: P) {
+            let index = $self.get_index(x, y);
+            $self.buffer[index] = color;
+        }
+
+        /// Convert (x, y) coordinates into an index value within the underlying pixel buffer.
+        pub const fn get_index(&$self, x: usize, y: usize) -> usize {
+            x + y * $self.size.x
+        }
+
+        /// Unset all internal data related to blitting to the destination surface.
+        ///
+        /// This function can be a useful safeguard when blitting to multiple surfaces.
+        pub const fn reset(&mut $self) {
+            $self.blit_area = None;
+            $self.destination_rect = None;
+        }
     };
 }
 
@@ -193,7 +197,7 @@ macro_rules! impl_bytes {
 }
 
 pub struct Surface<P: Copy + Clone + Sized + Default> {
-    pub(crate) rect: RectI,
+    pub(crate) size: USizeVec2,
     pub(crate) buffer: Vec<P>,
     pub(crate) destination_rect: Option<RectU>,
     pub(crate) blit_area: Option<RectU>,
@@ -207,7 +211,7 @@ impl<P: Copy + Clone + Sized + Default> Surface<P> {
     /// The destination rect and blit area both default to None.
     pub fn new(size: USizeVec2) -> Self {
         Self {
-            rect: RectI::from_size(size),
+            size,
             buffer: vec![P::default(); size.x * size.y],
             destination_rect: None,
             blit_area: None,
@@ -221,7 +225,7 @@ impl<P: Copy + Clone + Sized + Default> Surface<P> {
     /// The destination rect and blit area both default to None.
     pub fn new_filled(size: USizeVec2, color: P) -> Self {
         Self {
-            rect: RectI::from_size(size),
+            size,
             buffer: vec![color; size.x * size.y],
             destination_rect: None,
             blit_area: None,
@@ -287,7 +291,7 @@ impl_bytes!(u32);
 
 /// A surface with a mutable reference to a pixel buffer.
 pub struct SurfaceRef<'s, P: Copy + Clone + Sized + Default> {
-    pub(crate) rect: RectI,
+    pub(crate) size: USizeVec2,
     pub(crate) buffer: &'s mut [P],
     pub(crate) destination_rect: Option<RectU>,
     pub(crate) blit_area: Option<RectU>,
@@ -300,7 +304,9 @@ impl<'s, P: Copy + Clone + Sized + Default> SurfaceRef<'s, P> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use png::ColorType;
     use std::env::current_dir;
+    use std::io::Cursor;
 
     const SRC_W: usize = 32;
     const SRC_H: usize = 17;
@@ -328,12 +334,81 @@ mod tests {
             .unwrap();
     }
 
+    #[cfg(feature = "png")]
     #[test]
     fn test_clip() {
         blit_clipped("clip_positive.png", DST_W as i64 - 12, 16);
-        //blit_clipped("clip_negative.png", -8, -8);
+        blit_clipped("clip_negative.png", -8, -8);
     }
 
+    #[test]
+    fn test_area() {
+        let position = I64Vec2 { x: 2, y: 12 };
+        let src_size = USizeVec2 { x: SRC_W, y: SRC_H };
+        let dst = Surface::new_filled(USizeVec2 { x: DST_W, y: DST_H }, [0u8, 0, 0]);
+
+        let mut src = Surface::new_filled(src_size, [255u8, 255, 255])
+            .position(position, &dst)
+            .unwrap();
+        let size = USizeVec2::new(5, 5);
+        let area = src
+            .set_area(Some(RectI {
+                position: I64Vec2::ZERO,
+                size,
+            }))
+            .unwrap()
+            .unwrap();
+        assert_eq!(area.position, USizeVec2::ZERO);
+        assert_eq!(area.size, size);
+
+        // Clipped size.
+        let size = USizeVec2::new(70, 80);
+        let area = src
+            .set_area(Some(RectI {
+                position: I64Vec2::ZERO,
+                size,
+            }))
+            .unwrap()
+            .unwrap();
+        assert_eq!(area.position, USizeVec2::ZERO);
+        assert_eq!(area.size, src.size);
+
+        // Clipped position.
+        let position = I64Vec2::new(6, 8);
+        let area = src
+            .set_area(Some(RectI { position, size }))
+            .unwrap()
+            .unwrap();
+        assert_eq!(
+            area.position,
+            USizeVec2 {
+                x: position.x.cast_unsigned() as usize,
+                y: position.y.cast_unsigned() as usize,
+            }
+        );
+        assert_eq!(
+            area.size,
+            USizeVec2 {
+                x: SRC_W - position.x.cast_unsigned() as usize,
+                y: SRC_H - position.y.cast_unsigned() as usize,
+            }
+        );
+
+        // Negative position.
+        let position = I64Vec2::new(-5, -5);
+        let area = src
+            .set_area(Some(RectI { position, size }))
+            .unwrap()
+            .unwrap();
+        assert_eq!(area.position, USizeVec2::ZERO);
+        assert_eq!(area.size, src.size);
+
+        // Out of bounds.
+        let position = I64Vec2::new(-50, -5);
+        assert!(src.set_area(Some(RectI { position, size })).is_err());
+    }
+
+    #[cfg(feature = "png")]
     fn blit_clipped(name: &str, x: i64, y: i64) {
         let src_size = USizeVec2 { x: SRC_W, y: SRC_H };
         let mut dst = Surface::new_filled(USizeVec2 { x: DST_W, y: DST_H }, [0u8, 0, 0]);
@@ -348,31 +423,37 @@ mod tests {
             .unwrap();
     }
 
-    /*
-
+    #[cfg(feature = "png")]
     #[test]
     fn test_src_area() {
-        let src_size = Size { w: 128, h: 128 };
-        let pixel_type = PixelType::Rgb8;
+        const D: usize = 128;
+        const SIZE: USizeVec2 = USizeVec2::new(D, D);
 
-        let src = read_png(include_bytes!("../test_images/text.png"));
-        assert_eq!(src.len(), src_size.w * src_size.h * pixel_type.stride());
-
-        let dst_size = Size { w: 128, h: 128 };
-        let mut dst = vec![255; dst_size.w * dst_size.h * pixel_type.stride()];
-        let mut rect = ClippedRect::new(PositionI { x: 12, y: 13 }, dst_size, src_size).unwrap();
-        rect.set_src_rect(PositionU { x: 20, y: 3 }, Size { w: 50, h: 70 });
-        blit(&src, &mut dst, &rect, &pixel_type);
-        write_png("blit_area.png", &dst, dst_size.w as u32, dst_size.h as u32);
+        let mut dst = Rgb8Surface::new_filled(SIZE, [255, 255, 255]);
+        let src = read_png(include_bytes!("../test_images/text.png"))
+            .position(I64Vec2::new(12, 13), &dst)
+            .unwrap()
+            .area(Some(RectI {
+                position: I64Vec2::new(20, 3),
+                size: USizeVec2::new(50, 70),
+            }))
+            .unwrap();
+        src.blit(&mut dst).unwrap();
+        dst.write_png(current_dir().unwrap().join("test_output/clipped_text.png"))
+            .unwrap();
     }
 
-    fn read_png(bytes: &[u8]) -> Vec<u8> {
+    fn read_png(bytes: &[u8]) -> Rgb8Surface {
         let decoder = png::Decoder::new(Cursor::new(bytes));
         let mut reader = decoder.read_info().unwrap();
         let mut buf = vec![0; reader.output_buffer_size().unwrap()];
         let info = reader.next_frame(&mut buf).unwrap();
-        buf[..info.buffer_size()].to_vec()
+        assert_eq!(info.color_type, ColorType::Rgb);
+        Rgb8Surface {
+            size: USizeVec2::new(info.width as usize, info.height as usize),
+            buffer: cast_slice::<u8, [u8; 3]>(&buf[..info.buffer_size()]).to_vec(),
+            destination_rect: None,
+            blit_area: None,
+        }
     }
-
-     */
 }
