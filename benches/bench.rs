@@ -7,9 +7,19 @@ use sdl2::{
     surface::Surface,
 };
 
+const SRC_W: usize = 512;
+const SRC_H: usize = 512;
+
+macro_rules! get_rgba32 {
+    ($c:ident, $surface:tt, $name:literal) => {
+        let src = $surface::new(USizeVec2::new(SRC_W, SRC_H));
+        $c.bench_function(concat!($name, ": get_rgba32"), |b| {
+            b.iter(|| src.get_rgba32())
+        });
+    };
+}
+
 pub fn criterion_benchmark(c: &mut Criterion) {
-    const SRC_W: usize = 512;
-    const SRC_H: usize = 512;
     const DST_W: usize = 1920;
     const DST_H: usize = 1080;
     const SRC_LEN: usize = SRC_W * SRC_H;
@@ -44,6 +54,18 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("SDL2", |b| {
         b.iter(|| src_surface.blit(src_rect, &mut dst_surface, None))
     });
+
+    get_rgba32!(c, Rgb8Surface, "rgb8");
+    let src = Rgb8Surface::new(USizeVec2::new(SRC_W, SRC_H));
+    let mut dst = Rgba32Surface::new(USizeVec2::new(SRC_W, SRC_H));
+    c.bench_function("rgb8: set_rgba32", |b| {
+        b.iter(|| src.set_rgba32(&mut dst, 1.))
+    });
+
+    get_rgba32!(c, Rgba8Surface, "rgba8");
+    let src = Rgba8Surface::new(USizeVec2::new(SRC_W, SRC_H));
+    let mut dst = Rgba32Surface::new(USizeVec2::new(SRC_W, SRC_H));
+    c.bench_function("rgba8: set_rgba32", |b| b.iter(|| src.set_rgba32(&mut dst)));
 
     // Overlay.
     #[cfg(feature = "overlay")]
