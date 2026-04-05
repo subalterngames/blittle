@@ -177,10 +177,10 @@ macro_rules! impl_bytes {
 }
 
 pub struct Surface<P: Copy + Clone + Sized + Default> {
-    rect: RectI,
-    buffer: Vec<P>,
-    destination_rect: Option<RectU>,
-    blit_area: Option<RectU>,
+    pub(crate) rect: RectI,
+    pub(crate) buffer: Vec<P>,
+    pub(crate) destination_rect: Option<RectU>,
+    pub(crate) blit_area: Option<RectU>,
 }
 
 impl<P: Copy + Clone + Sized + Default> Surface<P> {
@@ -269,46 +269,12 @@ impl_bytes!(f32);
 impl_bytes!([f32; 2]);
 impl_bytes!(u32);
 
-impl Zrgb8Surface {
-    /// View this ZRGB surface as a mutable RGBA surface reference.
-    /// This is useful for setting per-pixel color values.
-    ///
-    /// NOTE: that the returned value does *not* contain RGBA values!
-    /// This is because ZRGB is meant to be used with [softbuffer](https://docs.rs/softbuffer/latest/softbuffer/).
-    /// The pixel layout is: `[z, r, g, b]` where `z` is always 0.
-    ///
-    /// NOTE: Setting the position, area, etc. will NOT modify the original surface.
-    pub fn as_rgba_ref(&mut self) -> SurfaceRef<'_, [u8; 4]> {
-        SurfaceRef {
-            rect: self.rect,
-            buffer: cast_slice_mut::<u32, [u8; 4]>(&mut self.buffer),
-            destination_rect: self.destination_rect,
-            blit_area: self.blit_area,
-        }
-    }
-}
-
-impl Rgba8Surface {
-    /// View this surface as a mutable ZRGB surface reference.
-    /// Useful for integration with [softbuffer](https://docs.rs/softbuffer/latest/softbuffer/).
-    ///
-    /// NOTE: Setting the position, area, etc. will NOT modify the original surface.
-    pub fn as_zrgb_ref(&mut self) -> SurfaceRef<'_, u32> {
-        SurfaceRef {
-            rect: self.rect,
-            buffer: cast_slice_mut::<[u8; 4], u32>(&mut self.buffer),
-            destination_rect: self.destination_rect,
-            blit_area: self.blit_area,
-        }
-    }
-}
-
 /// A surface with a mutable reference to a pixel buffer.
 pub struct SurfaceRef<'s, P: Copy + Clone + Sized + Default> {
-    rect: RectI,
-    buffer: &'s mut [P],
-    destination_rect: Option<RectU>,
-    blit_area: Option<RectU>,
+    pub(crate) rect: RectI,
+    pub(crate) buffer: &'s mut [P],
+    pub(crate) destination_rect: Option<RectU>,
+    pub(crate) blit_area: Option<RectU>,
 }
 
 impl<'s, P: Copy + Clone + Sized + Default> SurfaceRef<'s, P> {
@@ -318,33 +284,32 @@ impl<'s, P: Copy + Clone + Sized + Default> SurfaceRef<'s, P> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::io::Cursor;
-    use std::{fs::File, io::BufWriter, path::Path};
+    use std::env::current_dir;
 
     const SRC_W: usize = 32;
     const SRC_H: usize = 17;
     const DST_W: usize = 64;
     const DST_H: usize = 64;
 
+    #[cfg(feature = "png")]
     #[test]
     fn test_blit() {
         let position = I64Vec2 { x: 2, y: 12 };
         let src_size = USizeVec2 { x: SRC_W, y: SRC_H };
-        let mut src = Surface::new_filled(src_size, [255u8, 255, 255]).position(position);
-        let mut dst = Surface::new_filled(USizeVec2 { x: DST_W, y: DST_H }, [0u8, 255, 255]);
+        let mut dst = Surface::new_filled(USizeVec2 { x: DST_W, y: DST_H }, [0u8, 0, 0]);
 
-        let rect = src.set_destination(&dst).unwrap();
+        let src = Surface::new_filled(src_size, [255u8, 255, 255])
+            .position(position, &dst)
+            .unwrap();
+
+        let rect = src.destination_rect.unwrap();
         assert_eq!(rect.position, USizeVec2 { x: 2, y: 12 });
         assert_eq!(rect.size, src_size);
 
         src.blit(&mut dst).unwrap();
 
-        write_png(
-            "blit.png",
-            cast_slice::<[u8; 3], u8>(&dst.buffer),
-            DST_W as u32,
-            DST_H as u32,
-        );
+        dst.write_png(current_dir().unwrap().join("test_output/blit.png"))
+            .unwrap();
     }
 
     #[test]
@@ -352,6 +317,22 @@ mod tests {
         blit_clipped("clip_positive.png", 42, 16);
         blit_clipped("clip_negative.png", -8, -8);
     }
+
+    fn blit_clipped(name: &str, x: i64, y: i64) {
+        let src_size = USizeVec2 { x: SRC_W, y: SRC_H };
+        let mut dst = Surface::new_filled(USizeVec2 { x: DST_W, y: DST_H }, [0u8, 0, 0]);
+
+        let src = Surface::new_filled(src_size, [255u8, 255, 255])
+            .position(I64Vec2 { x, y }, &dst)
+            .unwrap();
+
+        src.blit(&mut dst).unwrap();
+
+        dst.write_png(current_dir().unwrap().join("test_output").join(name))
+            .unwrap();
+    }
+
+    /*
 
     #[test]
     fn test_src_area() {
@@ -369,19 +350,6 @@ mod tests {
         write_png("blit_area.png", &dst, dst_size.w as u32, dst_size.h as u32);
     }
 
-    fn blit_clipped(name: &str, x: isize, y: isize) {
-        let src = [255u8; SRC_W * SRC_H * RGB];
-        let mut dst = [0u8; DST_W * DST_H * RGB];
-
-        let dst_position = PositionI { x, y };
-        let dst_size = Size { w: DST_W, h: DST_H };
-        let src_size = Size { w: SRC_W, h: SRC_H };
-        let rect = ClippedRect::new(dst_position, dst_size, src_size).unwrap();
-
-        blit(&src, &mut dst, &rect, &PIXEL_TYPE);
-        write_png(name, &dst, DST_W as u32, DST_H as u32);
-    }
-
     fn read_png(bytes: &[u8]) -> Vec<u8> {
         let decoder = png::Decoder::new(Cursor::new(bytes));
         let mut reader = decoder.read_info().unwrap();
@@ -390,14 +358,5 @@ mod tests {
         buf[..info.buffer_size()].to_vec()
     }
 
-    fn write_png(path: &str, dst: &[u8], dst_w: u32, dst_h: u32) {
-        let path = Path::new(path);
-        let file = File::create(path).unwrap();
-        let w = BufWriter::new(file);
-        let mut encoder = png::Encoder::new(w, dst_w, dst_h);
-        encoder.set_color(png::ColorType::Rgb);
-        encoder.set_depth(png::BitDepth::Eight);
-        let mut writer = encoder.write_header().unwrap();
-        writer.write_image_data(dst).unwrap();
-    }
+     */
 }

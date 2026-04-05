@@ -13,13 +13,13 @@ categories = ["game-development", "graphics", "rendering"]
 [dependencies]
 bytemuck = "1.25.0"
 glam = "0.32.1"
+png =  { version = "0.18.1", optional = true }
 serde = { version = "1", features = ["derive"], optional = true}
 thiserror = "2.0.18"
 
 [dev-dependencies]
 blit = "0.8.5"
 criterion = "0.8.2"
-png = "0.18.0"
 sdl2 = "0.38.0"
 
 [[bench]]
@@ -27,6 +27,8 @@ name = "bench"
 harness = false
 
 [features]
+default = ["png"]
+png = ["dep:png"]
 serde = ["dep:serde", "glam/serde"]
 
 [package.metadata.docs.rs]
