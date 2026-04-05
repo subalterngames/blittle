@@ -9,9 +9,9 @@ pub type L8Surface = Surface<u8>;
 pub type La8Surface = Surface<[u8; 2]>;
 /// Red, green, blue.
 pub type Rgb8Surface = Surface<[u8; 3]>;
-/// Red, green, blue, alpha. Or, if using softbuffer: zero, red, green, blue.
+/// Red, green, blue, alpha. Or, if using [softbuffer](https://docs.rs/softbuffer/latest/softbuffer/): zero, red, green, blue.
 pub type Rgba8Surface = Surface<[u8; 4]>;
-/// Zero, red, green, blue. Meant to be used with softbuffer.
+/// Zero, red, green, blue. Meant to be used with [softbuffer](https://docs.rs/softbuffer/latest/softbuffer/).
 pub type Zrgb8Surface = Surface<u32>;
 /// 32-bit grayscale.
 pub type L32Surface = Surface<f32>;
@@ -20,6 +20,151 @@ pub type La32Surface = Surface<[f32; 2]>;
 /// Red, green, blue, alpha as Vec4s.
 /// This uses glam for that sweet sweet SIMD, so you can't get the underlying bytes buffer.
 pub type Rgba32Surface = Surface<Vec4>;
+
+macro_rules! impl_surface {
+    ($self:ident) => {
+        /// Fill the surface with `color`.
+        pub fn fill(&mut $self, color: P) {
+            $self.buffer.fill(color);
+        }
+
+        /// Set the top-left position of the surface, relative to the surface it will blit to `destination`.
+        ///
+        /// This also sets the clipped blitting area within `destination`.
+        ///
+        /// Returns an error if the clipped blitting area is not within `destination`.
+        pub fn position(mut $self, position: I64Vec2, destination: &Self) -> Result<Self, Error> {
+            $self.set_position(position, destination).map(|_| $self)
+        }
+
+        /// Set the top-left position of the surface, relative to the surface it will blit to `destination`.
+        ///
+        /// This also sets the clipped blitting area within `destination`, which is the return value.
+        ///
+        /// Returns an error if the clipped blitting area is not within `destination`.
+        pub const fn set_position(
+            &mut $self,
+            position: I64Vec2,
+            destination: &Self,
+        ) -> Result<RectU, Error> {
+            $self.rect.position = position;
+            match $self.rect.clip(destination.rect) {
+                Some(rect) => {
+                    $self.destination_rect = Some(rect);
+                    Ok(rect)
+                }
+                None => Err(Error::InvalidDestinationRect($self.rect, destination.rect)),
+            }
+        }
+
+        /// Returns the top-left position and size of the surface.
+        pub const fn get_rect(&$self) -> RectI {
+            $self.rect
+        }
+
+        /// Set an `area` within the pixel buffer to blit.
+        ///
+        /// If `area` is None, then the entirety of this surface will blit (this is the default behavior).
+        pub fn area(mut $self, area: Option<RectI>) -> Result<Self, Error> {
+            $self.set_area(area).map(|_| $self)
+        }
+
+        /// Set an `area` within the pixel buffer to blit.
+        ///
+        /// If `area` is None, then the entirety of this surface will blit (this is the default behavior).
+        pub const fn set_area(&mut $self, area: Option<RectI>) -> Result<Option<RectU>, Error> {
+            match area {
+                Some(area) => match area.clip($self.rect) {
+                    Some(area) => {
+                        $self.blit_area = Some(area);
+                        Ok($self.blit_area)
+                    }
+                    None => Err(Error::InvalidArea(area)),
+                },
+                None => Ok(None),
+            }
+        }
+
+         /// The underlying pixel buffer.
+    pub fn buffer(&$self) -> &[P] {
+        &$self.buffer
+    }
+
+    /// Iterate through the pixel buffer per-row, top to bottom.
+    pub fn rows(&$self) -> impl Iterator<Item = &[P]> {
+        $self.buffer.chunks_exact($self.rect.size.x)
+    }
+
+    /// Iterate through the pixel buffer per-row, top to bottom.
+    pub fn rows_mut(&mut $self) -> impl Iterator<Item = &mut [P]> {
+        $self.buffer.chunks_exact_mut($self.rect.size.x)
+    }
+
+    /// Returns the color of the pixel at (x, y).
+    ///
+    /// Returns an error if (x, y) is out of bounds.
+    pub fn get_pixel_checked(&$self, x: usize, y: usize) -> Result<P, Error> {
+        if x < $self.rect.size.x && y < $self.rect.size.y {
+            Ok($self.get_pixel_unchecked(x, y))
+        } else {
+            Err(Error::PixelPosition {
+                x,
+                y,
+                size: $self.rect.size,
+            })
+        }
+    }
+
+    /// Returns the color of the pixel at (x, y).
+    pub fn get_pixel_unchecked(&$self, x: usize, y: usize) -> P {
+        let index = $self.get_index(x, y);
+        $self.buffer[index]
+    }
+
+    /// Set the color of the pixel at (x, y).
+    ///
+    /// Returns an error if (x, y) is out of bounds.
+    pub fn set_pixel_checked(&mut $self, x: usize, y: usize, color: P) -> Result<(), Error> {
+        if x < $self.rect.size.x && y < $self.rect.size.y {
+            $self.set_pixel_unchecked(x, y, color);
+            Ok(())
+        } else {
+            Err(Error::PixelPosition {
+                x,
+                y,
+                size: $self.rect.size,
+            })
+        }
+    }
+
+    /// Set the color of the pixel at (x, y).
+    pub fn set_pixel_unchecked(&mut $self, x: usize, y: usize, color: P) {
+        let index = $self.get_index(x, y);
+        $self.buffer[index] = color;
+    }
+
+    /// Convert (x, y) coordinates into an index value within the underlying pixel buffer.
+    pub const fn get_index(&$self, x: usize, y: usize) -> usize {
+        x + y * $self.rect.size.x
+    }
+    };
+}
+
+macro_rules! impl_bytes {
+    ($p:ty) => {
+        impl Surface<$p> {
+            /// The underlying buffer as bytes.
+            pub fn bytes(&self) -> &[u8] {
+                cast_slice::<$p, u8>(&self.buffer)
+            }
+
+            /// The underlying mutable buffer as bytes.
+            pub fn bytes_mut(&mut self) -> &mut [u8] {
+                cast_slice_mut::<$p, u8>(&mut self.buffer)
+            }
+        }
+    };
+}
 
 pub struct Surface<P: Copy + Clone + Sized + Default> {
     rect: RectI,
@@ -54,68 +199,6 @@ impl<P: Copy + Clone + Sized + Default> Surface<P> {
             buffer: vec![color; size.x * size.y],
             destination_rect: None,
             blit_area: None,
-        }
-    }
-
-    /// Fill the surface with `color`.
-    pub fn fill(&mut self, color: P) {
-        self.buffer.fill(color);
-    }
-
-    /// Set the top-left position of the surface, relative to the surface it will blit to `destination`.
-    ///
-    /// This also sets the clipped blitting area within `destination`.
-    ///
-    /// Returns an error if the clipped blitting area is not within `destination`.
-    pub fn position(mut self, position: I64Vec2, destination: &Self) -> Result<Self, Error> {
-        self.set_position(position, destination).map(|_| self)
-    }
-
-    /// Set the top-left position of the surface, relative to the surface it will blit to `destination`.
-    ///
-    /// This also sets the clipped blitting area within `destination`, which is the return value.
-    ///
-    /// Returns an error if the clipped blitting area is not within `destination`.
-    pub const fn set_position(
-        &mut self,
-        position: I64Vec2,
-        destination: &Self,
-    ) -> Result<RectU, Error> {
-        self.rect.position = position;
-        match self.rect.clip(destination.rect) {
-            Some(rect) => {
-                self.destination_rect = Some(rect);
-                Ok(rect)
-            }
-            None => Err(Error::InvalidDestinationRect(self.rect, destination.rect)),
-        }
-    }
-
-    /// Returns the top-left position and size of the surface.
-    pub const fn get_rect(&self) -> RectI {
-        self.rect
-    }
-
-    /// Set an `area` within the pixel buffer to blit.
-    ///
-    /// If `area` is None, then the entirety of this surface will blit (this is the default behavior).
-    pub fn area(mut self, area: Option<RectI>) -> Result<Self, Error> {
-        self.set_area(area).map(|_| self)
-    }
-
-    /// Set an `area` within the pixel buffer to blit.
-    ///
-    /// If `area` is None, then the entirety of this surface will blit (this is the default behavior).
-    pub const fn set_area(&mut self, area: Option<RectI>) -> Result<Option<RectU>, Error> {
-        match area {
-            Some(area) => match area.clip(self.rect) {
-                Some(area) => {
-                    self.blit_area = Some(area);
-                    Ok(self.blit_area)
-                }
-                None => Err(Error::InvalidArea(area)),
-            },
-            None => Ok(None),
         }
     }
 
@@ -154,68 +237,7 @@ impl<P: Copy + Clone + Sized + Default> Surface<P> {
         Ok(())
     }
 
-    /// The underlying pixel buffer.
-    pub fn buffer(&self) -> &[P] {
-        &self.buffer
-    }
-
-    /// Iterate through the pixel buffer per-row, top to bottom.
-    pub fn rows(&self) -> impl Iterator<Item = &[P]> {
-        self.buffer.chunks_exact(self.rect.size.x)
-    }
-
-    /// Iterate through the pixel buffer per-row, top to bottom.
-    pub fn rows_mut(&mut self) -> impl Iterator<Item = &mut [P]> {
-        self.buffer.chunks_exact_mut(self.rect.size.x)
-    }
-
-    /// Returns the color of the pixel at (x, y).
-    ///
-    /// Returns an error if (x, y) is out of bounds.
-    pub fn get_pixel_checked(&self, x: usize, y: usize) -> Result<P, Error> {
-        if x < self.rect.size.x && y < self.rect.size.y {
-            Ok(self.get_pixel_unchecked(x, y))
-        } else {
-            Err(Error::PixelPosition {
-                x,
-                y,
-                size: self.rect.size,
-            })
-        }
-    }
-
-    /// Returns the color of the pixel at (x, y).
-    pub fn get_pixel_unchecked(&self, x: usize, y: usize) -> P {
-        let index = self.get_index(x, y);
-        self.buffer[index]
-    }
-
-    /// Set the color of the pixel at (x, y).
-    ///
-    /// Returns an error if (x, y) is out of bounds.
-    pub fn set_pixel_checked(&mut self, x: usize, y: usize, color: P) -> Result<(), Error> {
-        if x < self.rect.size.x && y < self.rect.size.y {
-            self.set_pixel_unchecked(x, y, color);
-            Ok(())
-        } else {
-            Err(Error::PixelPosition {
-                x,
-                y,
-                size: self.rect.size,
-            })
-        }
-    }
-
-    /// Set the color of the pixel at (x, y).
-    pub fn set_pixel_unchecked(&mut self, x: usize, y: usize, color: P) {
-        let index = self.get_index(x, y);
-        self.buffer[index] = color;
-    }
-
-    /// Convert (x, y) coordinates into an index value within the underlying pixel buffer.
-    pub const fn get_index(&self, x: usize, y: usize) -> usize {
-        x + y * self.rect.size.x
-    }
+    impl_surface!(self);
 }
 
 impl L8Surface {
@@ -230,22 +252,6 @@ impl L8Surface {
     }
 }
 
-macro_rules! impl_bytes {
-    ($p:ty) => {
-        impl Surface<$p> {
-            /// The underlying buffer as bytes.
-            pub fn bytes(&self) -> &[u8] {
-                cast_slice::<$p, u8>(&self.buffer)
-            }
-
-            /// The underlying mutable buffer as bytes.
-            pub fn bytes_mut(&mut self) -> &mut [u8] {
-                cast_slice_mut::<$p, u8>(&mut self.buffer)
-            }
-        }
-    };
-}
-
 impl_bytes!([u8; 2]);
 impl_bytes!([u8; 3]);
 impl_bytes!([u8; 4]);
@@ -254,11 +260,16 @@ impl_bytes!([f32; 2]);
 impl_bytes!(u32);
 
 impl Zrgb8Surface {
-    pub fn into_rgba8(self) -> Rgba8Surface {
-        let buffer = cast_vec::<u32, [u8; 4]>(self.buffer);
-        Rgba8Surface {
+    /// View this ZRGB surface as a mutable RGBA surface reference.
+    /// This is useful for setting per-pixel color values.
+    ///
+    /// NOTE: that the returned value does *not* contain RGBA values!
+    /// This is because ZRGB is meant to be used with [softbuffer](https://docs.rs/softbuffer/latest/softbuffer/).
+    /// The pixel layout is: `[z, r, g, b]` where `z` is always 0.
+    pub fn as_rgba_ref(&mut self) -> SurfaceRef<'_, [u8; 4]> {
+        SurfaceRef {
             rect: self.rect,
-            buffer,
+            buffer: cast_slice_mut::<u32, [u8; 4]>(&mut self.buffer),
             destination_rect: self.destination_rect,
             blit_area: self.blit_area,
         }
@@ -266,15 +277,28 @@ impl Zrgb8Surface {
 }
 
 impl Rgba8Surface {
-    pub fn into_zrgb8(self) -> Zrgb8Surface {
-        let buffer = cast_vec::<[u8; 4], u32>(self.buffer);
-        Zrgb8Surface {
+    /// View this surface as a mutable ZRGB surface reference.
+    /// Useful for integration with [softbuffer](https://docs.rs/softbuffer/latest/softbuffer/).
+    pub fn as_zrgb_ref(&mut self) -> SurfaceRef<'_, u32> {
+        SurfaceRef {
             rect: self.rect,
-            buffer,
+            buffer: cast_slice_mut::<[u8; 4], u32>(&mut self.buffer),
             destination_rect: self.destination_rect,
             blit_area: self.blit_area,
         }
     }
+}
+
+/// A surface with a mutable reference to a pixel buffer.
+pub struct SurfaceRef<'s, P: Copy + Clone + Sized + Default> {
+    rect: RectI,
+    buffer: &'s mut [P],
+    destination_rect: Option<RectU>,
+    blit_area: Option<RectU>,
+}
+
+impl<'s, P: Copy + Clone + Sized + Default> SurfaceRef<'s, P> {
+    impl_surface!(self);
 }
 
 #[cfg(test)]
