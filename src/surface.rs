@@ -1,6 +1,6 @@
 use crate::error::Error;
 use crate::rect::{RectI, RectU};
-use bytemuck::{cast_slice, cast_slice_mut};
+use bytemuck::{cast_slice, cast_slice_mut, cast_vec};
 use glam::{I64Vec2, USizeVec2, Vec4};
 
 /// Grayscale.
@@ -252,6 +252,30 @@ impl_bytes!([u8; 4]);
 impl_bytes!(f32);
 impl_bytes!([f32; 2]);
 impl_bytes!(u32);
+
+impl Zrgb8Surface {
+    pub fn into_rgba8(self) -> Rgba8Surface {
+        let buffer = cast_vec::<u32, [u8; 4]>(self.buffer);
+        Rgba8Surface {
+            rect: self.rect,
+            buffer,
+            destination_rect: self.destination_rect,
+            blit_area: self.blit_area,
+        }
+    }
+}
+
+impl Rgba8Surface {
+    pub fn into_zrgb8(self) -> Zrgb8Surface {
+        let buffer = cast_vec::<[u8; 4], u32>(self.buffer);
+        Zrgb8Surface {
+            rect: self.rect,
+            buffer,
+            destination_rect: self.destination_rect,
+            blit_area: self.blit_area,
+        }
+    }
+}
 
 #[cfg(test)]
 mod tests {
