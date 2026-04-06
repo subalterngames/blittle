@@ -102,6 +102,10 @@ macro_rules! impl_surface {
             &$self.buffer
         }
 
+        pub fn buffer_mut(&mut $self) -> &mut [P] {
+            &mut $self.buffer
+        }
+
         /// Iterate through the pixel buffer per-row, top to bottom.
         pub fn rows(&$self) -> impl Iterator<Item = &[P]> {
             $self.buffer.chunks_exact($self.size.x)
@@ -304,8 +308,11 @@ impl<'s, P: Copy + Clone + Sized + Default> SurfaceRef<'s, P> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[cfg(feature = "png")]
     use png::ColorType;
+    #[cfg(feature = "png")]
     use std::env::current_dir;
+    #[cfg(feature = "png")]
     use std::io::Cursor;
 
     const SRC_W: usize = 32;
@@ -443,6 +450,7 @@ mod tests {
             .unwrap();
     }
 
+    #[cfg(feature = "png")]
     fn read_png(bytes: &[u8]) -> Rgb8Surface {
         let decoder = png::Decoder::new(Cursor::new(bytes));
         let mut reader = decoder.read_info().unwrap();

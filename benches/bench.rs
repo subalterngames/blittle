@@ -23,10 +23,11 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     const DST_W: usize = 1920;
     const DST_H: usize = 1080;
     const SRC_LEN: usize = SRC_W * SRC_H;
+    const SRC_COLOR: [u8; 4] = [0; 4];
 
     let position = I64Vec2::new(2, 12);
     let mut dst = Rgba8Surface::new_filled(USizeVec2::new(DST_W, DST_H), [255; 4]);
-    let src = Rgba8Surface::new(USizeVec2::new(SRC_W, SRC_H))
+    let src = Rgba8Surface::new_filled(USizeVec2::new(SRC_W, SRC_H), SRC_COLOR)
         .position(position, &dst)
         .unwrap();
     c.bench_function("blittle", |b| b.iter(|| src.blit(&mut dst)));
@@ -55,9 +56,10 @@ pub fn criterion_benchmark(c: &mut Criterion) {
         b.iter(|| src_surface.blit(src_rect, &mut dst_surface, None))
     });
 
-    let mut src = MaskedSurface::new(src);
-    src.mask_mut().iter_mut().for_each(|m| *m = true);
-    c.bench_function("blittle mask", |b| b.iter(|| src.blit(&mut dst)));
+    let mut src = MaskedSurface::new(src, SRC_COLOR);
+    c.bench_function("blittle mask (unlocked)", |b| b.iter(|| src.blit(&mut dst)));
+    src.lock();
+    c.bench_function("blittle mask (locked)", |b| b.iter(|| src.blit(&mut dst)));
 
     get_rgba32!(c, Rgb8Surface, "rgb8");
     let src = Rgb8Surface::new(USizeVec2::new(SRC_W, SRC_H));

@@ -1,5 +1,4 @@
 use glam::USizeVec2;
-use std::path::PathBuf;
 use thiserror::Error;
 
 use crate::rect::RectI;
@@ -18,9 +17,11 @@ pub enum Error {
     PixelPosition { x: usize, y: usize, size: USizeVec2 },
     #[error("Invalid mask size. Expected: {expected} Got: {actual}")]
     MaskSize { actual: usize, expected: usize },
+    #[error("Surface is currently locked.")]
+    Locked,
     #[cfg(feature = "png")]
     #[error("Failed to write to {0} Reason: {1}")]
-    PngFile(PathBuf, std::io::Error),
+    PngFile(std::path::PathBuf, std::io::Error),
     #[cfg(feature = "png")]
     #[error("Failed to write png header: {0}")]
     PngHeader(png::EncodingError),
