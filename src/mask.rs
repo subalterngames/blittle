@@ -51,7 +51,7 @@ impl<P: Copy + Clone + Sized + Default + Eq + PartialEq> MaskedSurface<P> {
                     .iter()
                     .enumerate()
                     .filter_map(|(i, pixel)| {
-                        if *pixel == self.mask_color {
+                        if *pixel != self.mask_color {
                             Some(i)
                         } else {
                             None
@@ -88,16 +88,12 @@ impl<P: Copy + Clone + Sized + Default + Eq + PartialEq> MaskedSurface<P> {
                 size: destination_rect.size,
             },
         };
+        let dst_offset = other.get_index(destination_rect.position.x, destination_rect.position.y);
         match self.masked_indices.as_ref() {
             Some(mask_indices) => {
-                let src_offset = self
-                    .surface
-                    .get_index(blit_area.position.x, blit_area.position.y);
-                let dst_offset =
-                    other.get_index(destination_rect.position.x, destination_rect.position.y);
                 mask_indices.iter().for_each(|i| {
                     let i = *i;
-                    other.buffer[dst_offset + (src_offset - i)] = self.surface.buffer[i];
+                    other.buffer[dst_offset + i] = self.surface.buffer[i];
                 });
             }
             None => {
@@ -106,11 +102,9 @@ impl<P: Copy + Clone + Sized + Default + Eq + PartialEq> MaskedSurface<P> {
                 let src_offset = self
                     .surface
                     .get_index(blit_area.position.x, blit_area.position.y);
-                let dst_offset =
-                    other.get_index(destination_rect.position.x, destination_rect.position.y);
                 for i in 0..len {
                     let src_index = src_offset + i;
-                    if self.surface.buffer[src_index] == self.mask_color {
+                    if self.surface.buffer[src_index] != self.mask_color {
                         other.buffer[dst_offset + i] = self.surface.buffer[src_index];
                     }
                 }
@@ -143,14 +137,21 @@ mod tests {
         let mut src = Surface::new_filled(src_size, src_color)
             .position(position, &dst)
             .unwrap();
-        for pixel in src.buffer.chunks_exact_mut(2) {
+        for pixel in src.buffer.chunks_exact_mut(3) {
             pixel[0] = mask_color;
         }
-        let src = MaskedSurface::new(src, mask_color);
+        let mut src = MaskedSurface::new(src, mask_color);
 
         src.blit(&mut dst).unwrap();
 
-        dst.write_png(current_dir().unwrap().join("test_output/mask.png"))
+        dst.write_png(current_dir().unwrap().join("test_output/mask_unlocked.png"))
+            .unwrap();
+
+        // Lock.
+        src.lock();
+        src.blit(&mut dst).unwrap();
+
+        dst.write_png(current_dir().unwrap().join("test_output/mask_locked.png"))
             .unwrap();
     }
 }

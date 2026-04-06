@@ -72,42 +72,6 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     let src = Rgba8Surface::new(USizeVec2::new(SRC_W, SRC_H));
     let mut dst = Rgba32Surface::new(USizeVec2::new(SRC_W, SRC_H));
     c.bench_function("rgba8: set_rgba32", |b| b.iter(|| src.set_rgba32(&mut dst)));
-
-    // Overlay.
-    #[cfg(feature = "overlay")]
-    {
-        let src = vec![[100, 200, 80]; SRC_LEN];
-        let src = bytemuck::cast_slice::<[u8; 3], u8>(&src);
-        let mut dst = vec![Vec4::default(); SRC_LEN];
-        c.bench_function("rgb8 to rgba32", |b| {
-            b.iter(|| overlay::rgb8_to_rgba32_in_place(&src, &mut dst))
-        });
-
-        let src = vec![255; SRC_LEN_STRIDE];
-        c.bench_function("rgba8 to rgba32", |b| {
-            b.iter(|| overlay::rgba8_to_rgba32_in_place(&src, &mut dst))
-        });
-
-        let src = vec![Vec4::ONE; SRC_LEN];
-        let mut dst = vec![0; SRC_LEN_STRIDE];
-        c.bench_function("rgba32 to rgba8", |b| {
-            b.iter(|| overlay::rgba32_to_rgba8_in_place(&src, &mut dst))
-        });
-
-        let mut dst = vec![0; SRC_LEN * 3];
-        c.bench_function("rgba32 to rgb8", |b| {
-            b.iter(|| overlay::rgba32_to_rgb8_in_place(&src, &mut dst))
-        });
-
-        let src = vec![255; SRC_LEN_STRIDE];
-        let dst = vec![[19, 100, 234, 190]; DST_W * DST_H * PixelType::Rgba8.stride()];
-        let src = overlay::rgba8_to_rgba32(&src);
-        let mut dst = overlay::rgba8_to_rgba32(bytemuck::cast_slice::<[u8; 4], u8>(&dst));
-
-        c.bench_function("overlay", |b| {
-            b.iter(|| overlay::overlay_rgba32(&src, &mut dst, &rect));
-        });
-    }
 }
 
 criterion_group!(benches, criterion_benchmark);
