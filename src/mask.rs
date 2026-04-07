@@ -2,8 +2,15 @@ use crate::error::Error;
 use crate::{RectU, Surface};
 use glam::USizeVec2;
 
+/// A surface that uses a pixel color as a mask.
+/// Pixels of the mask color will not be copied to the destination surface.
+///
+/// Typically, this is used for RGB pixels.
+///
+/// MaskedSurfaces can be locked or unlocked.
+/// If the surface is locked, then pixels can't be manipulated, but blit speed is optimized.
 pub struct MaskedSurface<P: Copy + Clone + Sized + Default> {
-    pub surface: Surface<P>,
+    surface: Surface<P>,
     mask_color: P,
     masked_indices: Option<Vec<usize>>,
 }
@@ -17,6 +24,7 @@ impl<P: Copy + Clone + Sized + Default + Eq + PartialEq> MaskedSurface<P> {
         }
     }
 
+    /// Set the color of the mask. Returns an error if the surface is locked.
     pub const fn set_mask_color(&mut self, mask_color: P) -> Result<(), Error> {
         if self.is_locked() {
             Err(Error::Locked)
@@ -26,54 +34,75 @@ impl<P: Copy + Clone + Sized + Default + Eq + PartialEq> MaskedSurface<P> {
         }
     }
 
+    /// Lock the surface, optimizing for blit speed while preventing pixel manipulation.
     pub fn lock(&mut self) {
-        // Set new lock indices.
-        if self.masked_indices.is_none() {
-            self.masked_indices = Some(match self.surface.blit_area {
-                // If there is a blit area, only check those pixels.
-                Some(blit_area) => {
-                    let mut indices = vec![];
-                    // Iterate through the blit area.
-                    for y in blit_area.position.y..blit_area.position.y + blit_area.size.y {
-                        for x in blit_area.position.x..blit_area.position.x + blit_area.size.x {
-                            let index = self.surface.get_index(x, y);
-                            if self.surface.buffer[index] == self.mask_color {
-                                indices.push(index);
-                            }
+        if self.is_locked() {
+            return;
+        }
+        self.masked_indices = Some(match self.surface.blit_area {
+            // If there is a blit area, only check those pixels.
+            Some(blit_area) => {
+                let mut indices = vec![];
+                // Iterate through the blit area.
+                for y in blit_area.position.y..blit_area.position.y + blit_area.size.y {
+                    for x in blit_area.position.x..blit_area.position.x + blit_area.size.x {
+                        let index = self.surface.get_index(x, y);
+                        if self.surface.buffer[index] == self.mask_color {
+                            indices.push(index);
                         }
                     }
-                    indices
                 }
-                // Iterate through all pixels.
-                None => self
-                    .surface
-                    .buffer
-                    .iter()
-                    .enumerate()
-                    .filter_map(|(i, pixel)| {
-                        if *pixel != self.mask_color {
-                            Some(i)
-                        } else {
-                            None
-                        }
-                    })
-                    .collect(),
-            })
-        }
+                indices
+            }
+            // Iterate through all pixels.
+            None => self
+                .surface
+                .buffer
+                .iter()
+                .enumerate()
+                .filter_map(|(i, pixel)| {
+                    if *pixel != self.mask_color {
+                        Some(i)
+                    } else {
+                        None
+                    }
+                })
+                .collect(),
+        })
     }
 
+    /// Returns true if the surface is locked.
     pub const fn is_locked(&self) -> bool {
         self.masked_indices.is_some()
     }
 
+    /// Unlock the surface.
+    /// Blit speed will be unoptimized while pixel manipulation will be permitted.
     pub fn unlock(&mut self) {
         self.masked_indices = None;
     }
 
+    /// Returns a reference of the surface.
+    ///
+    /// Note that `self.blit(&mut destination)` is not the same as `self.surface.blit(&mut destination)`
+    /// because the latter won't apply the mask.
+    pub const fn surface(&self) -> &Surface<P> {
+        &self.surface
+    }
+
+    /// Returns a mutable reference of the surface.
+    /// Returns an error if the masked surface is locked.
+    pub const fn surface_mut(&mut self) -> Result<&mut Surface<P>, Error> {
+        if self.is_locked() {
+            Err(Error::Locked)
+        } else {
+            Ok(&mut self.surface)
+        }
+    }
+
     /// Blit onto `other`, using a mask.
     ///
-    /// Be sure to call [Surface::position] or [Surface::set_position]
-    /// before blitting to a *new* `other` surface.
+    /// This can be called if this masked surface is unlocked, but it'll be slower.
     pub fn blit(&self, other: &mut Surface<P>) -> Result<(), Error> {
         // Try to get the destination rect.
         let destination_rect = self
