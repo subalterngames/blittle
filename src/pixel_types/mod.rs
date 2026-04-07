@@ -73,6 +73,22 @@ macro_rules! impl_from_surface {
     };
 }
 
+macro_rules! impl_from_surface_ref {
+    ($from:ty, $to:tt, $converter:expr) => {
+        impl From<&$from> for $to {
+            fn from(value: &$from) -> Self {
+                let buffer = value.buffer.iter().map(|pixel| $converter(pixel)).collect();
+                Self {
+                    size: value.size,
+                    buffer,
+                    destination_rect: value.destination_rect,
+                    blit_area: value.blit_area,
+                }
+            }
+        }
+    };
+}
+
 // L8
 const fn l8_to_zrgb(pixel: u8) -> u32 {
     let pixel = pixel as u32;
@@ -222,26 +238,26 @@ impl_from_surface!(Zrgb8Surface, Rgba32Surface, |p: u32| {
 });
 
 // Rgba32
-fn rgba32_to_l32(p: Vec4) -> f32 {
+fn rgba32_to_l32(p: &Vec4) -> f32 {
     p.xyz().element_sum() / 3.
 }
-impl_from_surface!(Rgba32Surface, L8Surface, |p| f32_to_u8(rgba32_to_l32(p)));
-impl_from_surface!(Rgba32Surface, La8Surface, |p: Vec4| {
+impl_from_surface_ref!(Rgba32Surface, L8Surface, |p| f32_to_u8(rgba32_to_l32(p)));
+impl_from_surface_ref!(Rgba32Surface, La8Surface, |p: &Vec4| {
     let p = p.deref();
     let c = (p.x + p.y + p.z) / 3.;
     [f32_to_u8(c), f32_to_u8(p.w)]
 });
-impl_from_surface!(Rgba32Surface, L32Surface, rgba32_to_l32);
-impl_from_surface!(Rgba32Surface, La32Surface, |p: Vec4| {
+impl_from_surface_ref!(Rgba32Surface, L32Surface, rgba32_to_l32);
+impl_from_surface_ref!(Rgba32Surface, La32Surface, |p: &Vec4| {
     let p = p.deref();
     let c = (p.x + p.y + p.z) / 3.;
     [c, p.w]
 });
-impl_from_surface!(Rgba32Surface, Rgb8Surface, |p: Vec4| {
+impl_from_surface_ref!(Rgba32Surface, Rgb8Surface, |p: &Vec4| {
     let p = p.deref();
     [f32_to_u8(p.x), f32_to_u8(p.y), f32_to_u8(p.z)]
 });
-impl_from_surface!(Rgba32Surface, Rgba8Surface, |p: Vec4| {
+impl_from_surface_ref!(Rgba32Surface, Rgba8Surface, |p: &Vec4| {
     {
         let p = p.deref();
         [
@@ -252,7 +268,7 @@ impl_from_surface!(Rgba32Surface, Rgba8Surface, |p: Vec4| {
         ]
     }
 });
-impl_from_surface!(Rgba32Surface, Zrgb8Surface, |p: Vec4| {
+impl_from_surface_ref!(Rgba32Surface, Zrgb8Surface, |p: &Vec4| {
     let p = p.deref();
     u32::from_le_bytes([0, f32_to_u8(p.x), f32_to_u8(p.y), f32_to_u8(p.z)])
 });

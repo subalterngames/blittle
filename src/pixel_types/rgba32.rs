@@ -1,24 +1,9 @@
-use crate::{Rgb8Surface, Rgba8Surface, Rgba32Surface, pixel_types::u8_to_f32};
-use glam::Vec4;
+use crate::{L8Surface, Rgb8Surface, Rgba8Surface, Rgba32Surface, pixel_types::u8_to_f32};
+use glam::{Vec4, Vec4Swizzles};
 use std::ops::Deref;
 
 macro_rules! floats_to_bytes {
-    ($self:ident, $get:ident, $set:ident, $pixel:ident, $dest:tt) => {
-        /// Creates a new surface, converting pixel values.
-        pub fn $get(&$self) -> $dest {
-            let buffer = $self
-                .buffer
-                .iter()
-                .map(|pixel| Self::$pixel(pixel))
-                .collect();
-            $dest {
-                size: $self.size,
-                buffer,
-                destination_rect: $self.destination_rect,
-                blit_area: $self.blit_area,
-            }
-        }
-
+    ($self:ident, $set:ident, $pixel:ident, $dest:tt) => {
         /// Copy data into `other`, converting pixel values.
         pub fn $set(&$self, other: &mut $dest) {
             $self.buffer
@@ -62,26 +47,11 @@ impl Rgb8Surface {
         other.destination_rect = self.destination_rect;
         other.blit_area = self.blit_area;
     }
-
-    /// Creates a new surface, converting pixel values, where the alpha channel value is always 1.
-    pub fn get_rgba32(&self) -> Rgba32Surface {
-        let buffer = self
-            .buffer
-            .iter()
-            .map(|pixel| Self::pixel_to_rgba32(pixel, 1.))
-            .collect();
-        Rgba32Surface {
-            size: self.size,
-            buffer,
-            destination_rect: self.destination_rect,
-            blit_area: self.blit_area,
-        }
-    }
 }
 
 impl Rgba8Surface {
     /// Convert an RGBA8 pixel to an RGBA32 pixel.
-    pub const fn pixel_to_rgba32(pixel: &[u8; 4]) -> Vec4 {
+    const fn pixel_to_rgba32(pixel: &[u8; 4]) -> Vec4 {
         Vec4::new(
             u8_to_f32(pixel[0]),
             u8_to_f32(pixel[1]),
@@ -102,23 +72,17 @@ impl Rgba8Surface {
         other.destination_rect = self.destination_rect;
         other.blit_area = self.blit_area;
     }
-
-    /// Creates a new surface, converting pixel values, where the alpha channel value is always 1.
-    pub fn get_rgba32(&self) -> Rgba32Surface {
-        let buffer = self.buffer.iter().map(Self::pixel_to_rgba32).collect();
-        Rgba32Surface {
-            size: self.size,
-            buffer,
-            destination_rect: self.destination_rect,
-            blit_area: self.blit_area,
-        }
-    }
 }
 
 impl Rgba32Surface {
+    #[inline]
+    fn rgba32_to_l32(p: Vec4) -> f32 {
+        p.xyz().element_sum() / 3.
+    }
+
     /// Convert an RGBA32 pixel to an RGBA32 pixel.
     #[inline]
-    pub fn pixel_to_rgb8(pixel: &Vec4) -> [u8; 3] {
+    pub(crate) fn pixel_to_rgb8(pixel: &Vec4) -> [u8; 3] {
         let color = pixel * 256.;
         let color = color.deref();
         [color.x as u8, color.y as u8, color.z as u8]
@@ -126,13 +90,13 @@ impl Rgba32Surface {
 
     /// Convert an RGBA32 pixel to an RGBA8 pixel.
     #[inline]
-    pub fn pixel_to_rgba8(color: &Vec4) -> [u8; 4] {
+    pub(crate) fn pixel_to_rgba8(color: &Vec4) -> [u8; 4] {
         let color = color * 256.;
         let color = color.deref();
         [color.x as u8, color.y as u8, color.z as u8, color.w as u8]
     }
 
-    floats_to_bytes!(self, get_rgb8, set_rgb8, pixel_to_rgb8, Rgb8Surface);
+    floats_to_bytes!(self, set_rgb8, pixel_to_rgb8, Rgb8Surface);
 
-    floats_to_bytes!(self, get_rgba8, set_rgba8, pixel_to_rgba8, Rgba8Surface);
+    floats_to_bytes!(self, set_rgba8, pixel_to_rgba8, Rgba8Surface);
 }
