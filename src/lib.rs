@@ -3,12 +3,11 @@
 
 mod error;
 mod mask;
+mod pixel_types;
 #[cfg(feature = "png")]
 mod png;
 mod rect;
-mod rgba32;
 mod surface;
-mod zrgb8;
 
 pub use error::Error;
 pub use mask::MaskedSurface;
