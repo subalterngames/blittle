@@ -14,7 +14,7 @@ macro_rules! get_rgba32 {
     ($c:ident, $surface:tt, $name:literal) => {
         let src = $surface::new(USizeVec2::new(SRC_W, SRC_H));
         $c.bench_function(concat!($name, ": get_rgba32"), |b| {
-            b.iter(|| src.get_rgba32())
+            b.iter(|| Rgba32Surface::from(&src))
         });
     };
 }

@@ -1,5 +1,5 @@
-use crate::{L8Surface, Rgb8Surface, Rgba8Surface, Rgba32Surface, pixel_types::u8_to_f32};
-use glam::{Vec4, Vec4Swizzles};
+use crate::{Rgb8Surface, Rgba8Surface, Rgba32Surface, pixel_types::u8_to_f32};
+use glam::Vec4;
 use std::ops::Deref;
 
 macro_rules! floats_to_bytes {
@@ -21,7 +21,7 @@ macro_rules! floats_to_bytes {
 
 impl Rgb8Surface {
     /// Convert an RGB8 pixel to an RGBA32 pixel.
-    pub const fn pixel_to_rgba32(pixel: &[u8; 3], alpha: f32) -> Vec4 {
+    const fn pixel_to_rgba32(pixel: &[u8; 3], alpha: f32) -> Vec4 {
         Vec4::new(
             u8_to_f32(pixel[0]),
             u8_to_f32(pixel[1]),
@@ -51,7 +51,7 @@ impl Rgb8Surface {
 
 impl Rgba8Surface {
     /// Convert an RGBA8 pixel to an RGBA32 pixel.
-    const fn pixel_to_rgba32(pixel: &[u8; 4]) -> Vec4 {
+    pub(super) const fn pixel_to_rgba32(pixel: &[u8; 4]) -> Vec4 {
         Vec4::new(
             u8_to_f32(pixel[0]),
             u8_to_f32(pixel[1]),
@@ -75,25 +75,20 @@ impl Rgba8Surface {
 }
 
 impl Rgba32Surface {
-    #[inline]
-    fn rgba32_to_l32(p: Vec4) -> f32 {
-        p.xyz().element_sum() / 3.
-    }
-
     /// Convert an RGBA32 pixel to an RGBA32 pixel.
     #[inline]
-    pub(crate) fn pixel_to_rgb8(pixel: &Vec4) -> [u8; 3] {
-        let color = pixel * 256.;
-        let color = color.deref();
-        [color.x as u8, color.y as u8, color.z as u8]
+    pub(super) fn pixel_to_rgb8(pixel: &Vec4) -> [u8; 3] {
+        let pixel = pixel * 256.;
+        let pixel = pixel.deref();
+        [pixel.x as u8, pixel.y as u8, pixel.z as u8]
     }
 
     /// Convert an RGBA32 pixel to an RGBA8 pixel.
     #[inline]
-    pub(crate) fn pixel_to_rgba8(color: &Vec4) -> [u8; 4] {
-        let color = color * 256.;
-        let color = color.deref();
-        [color.x as u8, color.y as u8, color.z as u8, color.w as u8]
+    pub(super) fn pixel_to_rgba8(pixel: &Vec4) -> [u8; 4] {
+        let pixel = pixel * 256.;
+        let pixel = pixel.deref();
+        [pixel.x as u8, pixel.y as u8, pixel.z as u8, pixel.w as u8]
     }
 
     floats_to_bytes!(self, set_rgb8, pixel_to_rgb8, Rgb8Surface);

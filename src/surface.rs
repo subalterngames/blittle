@@ -294,6 +294,8 @@ impl_bytes!([f32; 2]);
 impl_bytes!(u32);
 
 /// A surface with a mutable reference to a pixel buffer.
+///
+/// This is used to view ZRGB surfaces as RGBA surfaces and vice-versa.
 pub struct SurfaceRef<'s, P: Copy + Clone + Sized + Default> {
     pub(crate) size: USizeVec2,
     pub(crate) buffer: &'s mut [P],

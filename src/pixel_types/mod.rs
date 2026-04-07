@@ -57,26 +57,6 @@ macro_rules! impl_from_surface {
     ($from:ty, $to:tt, $converter:expr) => {
         impl From<&$from> for $to {
             fn from(value: &$from) -> Self {
-                let buffer = value
-                    .buffer
-                    .iter()
-                    .map(|pixel| $converter(*pixel))
-                    .collect();
-                Self {
-                    size: value.size,
-                    buffer,
-                    destination_rect: value.destination_rect,
-                    blit_area: value.blit_area,
-                }
-            }
-        }
-    };
-}
-
-macro_rules! impl_from_surface_ref {
-    ($from:ty, $to:tt, $converter:expr) => {
-        impl From<&$from> for $to {
-            fn from(value: &$from) -> Self {
                 let buffer = value.buffer.iter().map(|pixel| $converter(pixel)).collect();
                 Self {
                     size: value.size,
@@ -90,74 +70,82 @@ macro_rules! impl_from_surface_ref {
 }
 
 // L8
-const fn l8_to_zrgb(pixel: u8) -> u32 {
-    let pixel = pixel as u32;
-    ((0 | pixel << 24) | pixel << 16) | pixel << 8
+const fn l8_to_zrgb(p: &u8) -> u32 {
+    let pixel = *p as u32;
+    ((pixel << 24) | pixel << 16) | pixel << 8
 }
-impl_from_surface!(L8Surface, La8Surface, |p| [p, 255]);
-impl_from_surface!(L8Surface, L32Surface, u8_to_f32);
-impl_from_surface!(L8Surface, La32Surface, |p| [u8_to_f32(p), 1.]);
-impl_from_surface!(L8Surface, Rgb8Surface, |p| [p; 3]);
-impl_from_surface!(L8Surface, Rgba8Surface, |p| [p, p, p, 255]);
+impl_from_surface!(L8Surface, La8Surface, |p: &u8| [*p, 255]);
+impl_from_surface!(L8Surface, L32Surface, |p: &u8| u8_to_f32(*p));
+impl_from_surface!(L8Surface, La32Surface, |p: &u8| [u8_to_f32(*p), 1.]);
+impl_from_surface!(L8Surface, Rgb8Surface, |p: &u8| [*p; 3]);
+impl_from_surface!(L8Surface, Rgba8Surface, |p: &u8| {
+    let p = *p;
+    [p, p, p, 255]
+});
 impl_from_surface!(L8Surface, Zrgb8Surface, l8_to_zrgb);
-impl_from_surface!(L8Surface, Rgba32Surface, |p| {
-    let pixel = u8_to_f32(p);
+impl_from_surface!(L8Surface, Rgba32Surface, |p: &u8| {
+    let pixel = u8_to_f32(*p);
     Vec4::new(pixel, pixel, pixel, 1.)
 });
 
 // La8
 type La8 = [u8; 2];
-impl_from_surface!(La8Surface, L8Surface, |p: La8| p[0]);
-impl_from_surface!(La8Surface, L32Surface, |p: La8| u8_to_f32(p[0]));
-impl_from_surface!(La8Surface, La32Surface, |p: La8| [
+impl_from_surface!(La8Surface, L8Surface, |p: &La8| p[0]);
+impl_from_surface!(La8Surface, L32Surface, |p: &La8| u8_to_f32(p[0]));
+impl_from_surface!(La8Surface, La32Surface, |p: &La8| [
     u8_to_f32(p[0]),
     u8_to_f32(p[1])
 ]);
-impl_from_surface!(La8Surface, Rgb8Surface, |p: La8| [p[0]; 3]);
-impl_from_surface!(La8Surface, Rgba8Surface, |p: La8| {
+impl_from_surface!(La8Surface, Rgb8Surface, |p: &La8| [p[0]; 3]);
+impl_from_surface!(La8Surface, Rgba8Surface, |p: &La8| {
     let c = p[0];
     [c, c, c, 255]
 });
-impl_from_surface!(La8Surface, Zrgb8Surface, |p: La8| l8_to_zrgb(p[0]));
-impl_from_surface!(La8Surface, Rgba32Surface, |p: La8| {
+impl_from_surface!(La8Surface, Zrgb8Surface, |p: &La8| l8_to_zrgb(&p[0]));
+impl_from_surface!(La8Surface, Rgba32Surface, |p: &La8| {
     let c = u8_to_f32(p[0]);
     let a = u8_to_f32(p[1]);
     Vec4::new(c, c, c, a)
 });
 
 // La32
-impl_from_surface!(L32Surface, L8Surface, f32_to_u8);
-impl_from_surface!(L32Surface, La8Surface, |p| [f32_to_u8(p), 255]);
-impl_from_surface!(L32Surface, La32Surface, |p| [p, 1.]);
-impl_from_surface!(L32Surface, Rgb8Surface, |p| {
-    let c = f32_to_u8(p);
+impl_from_surface!(L32Surface, L8Surface, |p: &f32| f32_to_u8(*p));
+impl_from_surface!(L32Surface, La8Surface, |p: &f32| [f32_to_u8(*p), 255]);
+impl_from_surface!(L32Surface, La32Surface, |p: &f32| [*p, 1.]);
+impl_from_surface!(L32Surface, Rgb8Surface, |p: &f32| {
+    let c = f32_to_u8(*p);
     [c; 3]
 });
-impl_from_surface!(L32Surface, Rgba8Surface, |p| {
-    let c = f32_to_u8(p);
+impl_from_surface!(L32Surface, Rgba8Surface, |p: &f32| {
+    let c = f32_to_u8(*p);
     [c, c, c, 255]
 });
-impl_from_surface!(L32Surface, Zrgb8Surface, |p| l8_to_zrgb(f32_to_u8(p)));
-impl_from_surface!(L32Surface, Rgba32Surface, |p| Vec4::new(p, p, p, 1.));
+impl_from_surface!(L32Surface, Zrgb8Surface, |p: &f32| l8_to_zrgb(&f32_to_u8(
+    *p
+)));
+impl_from_surface!(L32Surface, Rgba32Surface, |p: &f32| {
+    let p = *p;
+    Vec4::new(p, p, p, 1.)
+});
 
 // La32
 type La32 = [f32; 2];
-impl_from_surface!(La32Surface, L8Surface, |p: La32| f32_to_u8(p[0]));
-impl_from_surface!(La32Surface, La8Surface, |p: La32| [
+impl_from_surface!(La32Surface, L8Surface, |p: &La32| f32_to_u8(p[0]));
+impl_from_surface!(La32Surface, La8Surface, |p: &La32| [
     f32_to_u8(p[0]),
     f32_to_u8(p[1])
 ]);
-impl_from_surface!(La32Surface, L32Surface, |p: La32| p[0]);
-impl_from_surface!(La32Surface, Rgb8Surface, |p: La32| [f32_to_u8(p[0]); 3]);
-impl_from_surface!(La32Surface, Rgba8Surface, |p: La32| {
+impl_from_surface!(La32Surface, L32Surface, |p: &La32| p[0]);
+impl_from_surface!(La32Surface, Rgb8Surface, |p: &La32| [f32_to_u8(p[0]); 3]);
+impl_from_surface!(La32Surface, Rgba8Surface, |p: &La32| {
     let c = f32_to_u8(p[0]);
     let a = f32_to_u8(p[1]);
     [c, c, c, a]
 });
-impl_from_surface!(La32Surface, Zrgb8Surface, |p: La32| l8_to_zrgb(f32_to_u8(
-    p[0]
-)));
-impl_from_surface!(La32Surface, Rgba32Surface, |p: La32| {
+impl_from_surface!(La32Surface, Zrgb8Surface, |p: &La32| l8_to_zrgb(
+    &f32_to_u8(p[0])
+));
+impl_from_surface!(La32Surface, Rgba32Surface, |p: &La32| {
     let c = p[0];
     let a = p[1];
     Vec4::new(c, c, c, a)
@@ -168,14 +156,14 @@ const fn grayscale(r: u8, g: u8, b: u8) -> f32 {
     (u8_to_f32(r) + u8_to_f32(g) + u8_to_f32(b)) / 3.
 }
 
-const fn rgb8_to_l8<const N: usize>(p: [u8; N]) -> u8 {
+const fn rgb8_to_l8<const N: usize>(p: &[u8; N]) -> u8 {
     f32_to_u8(rgb8_to_l32(p))
 }
 
-const fn rgb8_to_l32<const N: usize>(p: [u8; N]) -> f32 {
+const fn rgb8_to_l32<const N: usize>(p: &[u8; N]) -> f32 {
     grayscale(p[0], p[1], p[2])
 }
-const fn rgb8_to_zrgb8<const N: usize>(p: [u8; N]) -> u32 {
+const fn rgb8_to_zrgb8<const N: usize>(p: &[u8; N]) -> u32 {
     u32::from_le_bytes([0, p[0], p[1], p[2]])
 }
 type Rgb8 = [u8; 3];
@@ -183,9 +171,11 @@ impl_from_surface!(Rgb8Surface, L8Surface, rgb8_to_l8);
 impl_from_surface!(Rgb8Surface, La8Surface, |p| [rgb8_to_l8(p), 255]);
 impl_from_surface!(Rgb8Surface, L32Surface, rgb8_to_l32);
 impl_from_surface!(Rgb8Surface, La32Surface, |p| [rgb8_to_l32(p), 1.]);
-impl_from_surface!(Rgb8Surface, Rgba8Surface, |p: Rgb8| [p[0], p[1], p[2], 255]);
+impl_from_surface!(Rgb8Surface, Rgba8Surface, |p: &Rgb8| [
+    p[0], p[1], p[2], 255
+]);
 impl_from_surface!(Rgb8Surface, Zrgb8Surface, rgb8_to_zrgb8);
-impl_from_surface!(Rgb8Surface, Rgba32Surface, |p: Rgb8| Vec4::new(
+impl_from_surface!(Rgb8Surface, Rgba32Surface, |p: &Rgb8| Vec4::new(
     u8_to_f32(p[0]),
     u8_to_f32(p[1]),
     u8_to_f32(p[2]),
@@ -201,21 +191,16 @@ impl_from_surface!(Rgba8Surface, La32Surface, |p| [
     rgb8_to_l32(p),
     u8_to_f32(p[3])
 ]);
-impl_from_surface!(Rgba8Surface, Rgb8Surface, |p: Rgba8| [p[0], p[1], p[2]]);
+impl_from_surface!(Rgba8Surface, Rgb8Surface, |p: &Rgba8| [p[0], p[1], p[2]]);
 impl_from_surface!(Rgba8Surface, Zrgb8Surface, rgb8_to_zrgb8);
-impl_from_surface!(Rgba8Surface, Rgba32Surface, |p: Rgba8| Vec4::new(
-    u8_to_f32(p[0]),
-    u8_to_f32(p[1]),
-    u8_to_f32(p[2]),
-    u8_to_f32(p[3])
-));
+impl_from_surface!(Rgba8Surface, Rgba32Surface, Rgba8Surface::pixel_to_rgba32);
 
 // Zrgb8
-const fn zrgb8_to_l8(p: u32) -> u8 {
+const fn zrgb8_to_l8(p: &u32) -> u8 {
     f32_to_u8(zrgb8_to_l32(p))
 }
 
-const fn zrgb8_to_l32(p: u32) -> f32 {
+const fn zrgb8_to_l32(p: &u32) -> f32 {
     let p = p.to_le_bytes();
     grayscale(p[1], p[2], p[3])
 }
@@ -224,53 +209,39 @@ impl_from_surface!(Zrgb8Surface, L8Surface, zrgb8_to_l8);
 impl_from_surface!(Zrgb8Surface, La8Surface, |p| [zrgb8_to_l8(p), 255]);
 impl_from_surface!(Zrgb8Surface, L32Surface, zrgb8_to_l32);
 impl_from_surface!(Zrgb8Surface, La32Surface, |p| [zrgb8_to_l32(p), 1.]);
-impl_from_surface!(Zrgb8Surface, Rgb8Surface, |p: u32| {
+impl_from_surface!(Zrgb8Surface, Rgb8Surface, |p: &u32| {
     let p = p.to_le_bytes();
     [p[1], p[2], p[3]]
 });
-impl_from_surface!(Zrgb8Surface, Rgba8Surface, |p: u32| {
+impl_from_surface!(Zrgb8Surface, Rgba8Surface, |p: &u32| {
     let p = p.to_le_bytes();
     [p[1], p[2], p[3], 255]
 });
-impl_from_surface!(Zrgb8Surface, Rgba32Surface, |p: u32| {
+impl_from_surface!(Zrgb8Surface, Rgba32Surface, |p: &u32| {
     let p = p.to_le_bytes();
     Vec4::new(u8_to_f32(p[1]), u8_to_f32(p[2]), u8_to_f32(p[3]), 1.)
 });
 
 // Rgba32
 fn rgba32_to_l32(p: &Vec4) -> f32 {
-    p.xyz().element_sum() / 3.
+    (p * 256.).xyz().element_sum() / 3.
 }
-impl_from_surface_ref!(Rgba32Surface, L8Surface, |p| f32_to_u8(rgba32_to_l32(p)));
-impl_from_surface_ref!(Rgba32Surface, La8Surface, |p: &Vec4| {
-    let p = p.deref();
-    let c = (p.x + p.y + p.z) / 3.;
+impl_from_surface!(Rgba32Surface, L8Surface, |p| f32_to_u8(rgba32_to_l32(p)));
+impl_from_surface!(Rgba32Surface, La8Surface, |p: &Vec4| {
+    let c = rgba32_to_l32(p);
     [f32_to_u8(c), f32_to_u8(p.w)]
 });
-impl_from_surface_ref!(Rgba32Surface, L32Surface, rgba32_to_l32);
-impl_from_surface_ref!(Rgba32Surface, La32Surface, |p: &Vec4| {
-    let p = p.deref();
-    let c = (p.x + p.y + p.z) / 3.;
+impl_from_surface!(Rgba32Surface, L32Surface, rgba32_to_l32);
+impl_from_surface!(Rgba32Surface, La32Surface, |p: &Vec4| {
+    let c = rgba32_to_l32(p);
     [c, p.w]
 });
-impl_from_surface_ref!(Rgba32Surface, Rgb8Surface, |p: &Vec4| {
+impl_from_surface!(Rgba32Surface, Rgb8Surface, Rgba32Surface::pixel_to_rgb8);
+impl_from_surface!(Rgba32Surface, Rgba8Surface, Rgba32Surface::pixel_to_rgba8);
+impl_from_surface!(Rgba32Surface, Zrgb8Surface, |p: &Vec4| {
+    let p = p * 256.;
     let p = p.deref();
-    [f32_to_u8(p.x), f32_to_u8(p.y), f32_to_u8(p.z)]
-});
-impl_from_surface_ref!(Rgba32Surface, Rgba8Surface, |p: &Vec4| {
-    {
-        let p = p.deref();
-        [
-            f32_to_u8(p.x),
-            f32_to_u8(p.y),
-            f32_to_u8(p.z),
-            f32_to_u8(p.w),
-        ]
-    }
-});
-impl_from_surface_ref!(Rgba32Surface, Zrgb8Surface, |p: &Vec4| {
-    let p = p.deref();
-    u32::from_le_bytes([0, f32_to_u8(p.x), f32_to_u8(p.y), f32_to_u8(p.z)])
+    u32::from_le_bytes([0, p.x as u8, p.y as u8, p.z as u8])
 });
 
 #[cfg(test)]
@@ -284,7 +255,7 @@ mod tests {
         b |= gray << 24;
         b |= gray << 16;
         b |= gray << 8;
-        let c = ((0 | gray << 24) | gray << 16) | gray << 8;
+        let c = ((gray << 24) | gray << 16) | gray << 8;
         assert_eq!(a, b);
         assert_eq!(a, c);
     }
