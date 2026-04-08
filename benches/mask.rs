@@ -15,11 +15,40 @@ pub fn criterion_benchmark(c: &mut Criterion) {
         .position(position, &dst)
         .unwrap();
 
-    let mut src = MaskedSurface::new(src, [255, 0, 0, 0]);
+    let mask_color = [255, 0, 0, 0];
+    let mut src = MaskedSurface::new(src, mask_color);
     let mut group = c.benchmark_group("mask");
     group.bench_function("unlocked", |b| b.iter(|| src.blit(&mut dst)));
     src.lock();
-    group.bench_function("locked", |b| b.iter(|| src.blit(&mut dst)));
+    group.bench_function("locked all", |b| b.iter(|| src.blit(&mut dst)));
+    src.unlock();
+    // Per-row.
+    let w = src.surface().get_size().x;
+    src.surface_mut()
+        .unwrap()
+        .buffer_mut()
+        .chunks_exact_mut(w * 2)
+        .for_each(|c| {
+            c[0..w].fill(mask_color);
+        });
+    src.lock();
+    group.bench_function("locked rows", |b| b.iter(|| src.blit(&mut dst)));
+    // Per-pixel.
+    let src = Rgba8Surface::new_filled(USizeVec2::new(SRC_W, SRC_H), SRC_COLOR)
+        .position(position, &dst)
+        .unwrap();
+
+    let mask_color = [255, 0, 0, 0];
+    let mut src = MaskedSurface::new(src, mask_color);
+    src.surface_mut()
+        .unwrap()
+        .buffer_mut()
+        .chunks_exact_mut(2)
+        .for_each(|c| {
+            c[0] = mask_color;
+        });
+    src.lock();
+    group.bench_function("locked pixels", |b| b.iter(|| src.blit(&mut dst)));
 
     group.finish();
 }

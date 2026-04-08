@@ -2,6 +2,11 @@ use crate::error::Error;
 use crate::{RectU, Surface};
 use glam::USizeVec2;
 
+enum Mask {
+    Pixel(usize),
+    Row { i0: usize, i1: usize },
+}
+
 /// A surface that uses a pixel color as a mask.
 /// Pixels of the mask color will not be copied to the destination surface.
 ///
@@ -12,7 +17,7 @@ use glam::USizeVec2;
 pub struct MaskedSurface<P: Copy + Clone + Sized + Default> {
     surface: Surface<P>,
     mask_color: P,
-    masked_indices: Option<Vec<usize>>,
+    mask: Option<Vec<Mask>>,
 }
 
 impl<P: Copy + Clone + Sized + Default + Eq + PartialEq> MaskedSurface<P> {
@@ -20,7 +25,7 @@ impl<P: Copy + Clone + Sized + Default + Eq + PartialEq> MaskedSurface<P> {
         Self {
             surface,
             mask_color,
-            masked_indices: None,
+            mask: None,
         }
     }
 
@@ -39,47 +44,52 @@ impl<P: Copy + Clone + Sized + Default + Eq + PartialEq> MaskedSurface<P> {
         if self.is_locked() {
             return;
         }
-        self.masked_indices = Some(match self.surface.blit_area {
-            // If there is a blit area, only check those pixels.
-            Some(blit_area) => {
-                let mut indices = vec![];
-                // Iterate through the blit area.
-                for y in blit_area.position.y..blit_area.position.y + blit_area.size.y {
-                    for x in blit_area.position.x..blit_area.position.x + blit_area.size.x {
-                        let index = self.surface.get_index(x, y);
-                        if self.surface.buffer[index] != self.mask_color {
-                            indices.push(index);
+        // Get the top-left and bottom-right coordinates of the blit area.
+        let (x0, x1, y0, y1) = match self.surface.blit_area {
+            Some(blit_area) => (
+                blit_area.position.x,
+                blit_area.position.x + blit_area.size.x,
+                blit_area.position.y,
+                blit_area.position.y + blit_area.size.y,
+            ),
+            None => (0, self.surface.size.x, 0, self.surface.size.y),
+        };
+        self.mask = {
+            let mut mask = vec![];
+            // Iterate through the blit area.
+            for y in y0..y1 {
+                let i0 = self.surface.get_index(x0, y);
+                let i1 = self.surface.get_index(x1, y);
+                if self.surface.buffer[i0..i1]
+                    .iter()
+                    .all(|p| *p != self.mask_color)
+                {
+                    // Remember the entire row.
+                    mask.push(Mask::Row { i0, i1 })
+                } else {
+                    // Remember each unmasked pixel.
+                    mask.extend((i0..i1).filter_map(|i| {
+                        if self.surface.buffer[i] != self.mask_color {
+                            Some(Mask::Pixel(i))
+                        } else {
+                            None
                         }
-                    }
+                    }))
                 }
-                indices
             }
-            // Iterate through all pixels.
-            None => self
-                .surface
-                .buffer
-                .iter()
-                .enumerate()
-                .filter_map(|(i, pixel)| {
-                    if *pixel != self.mask_color {
-                        Some(i)
-                    } else {
-                        None
-                    }
-                })
-                .collect(),
-        })
+            Some(mask)
+        };
     }
 
     /// Returns true if the surface is locked.
     pub const fn is_locked(&self) -> bool {
-        self.masked_indices.is_some()
+        self.mask.is_some()
     }
 
     /// Unlock the surface.
     /// Blit speed will be unoptimized while pixel manipulation will be permitted.
     pub fn unlock(&mut self) {
-        self.masked_indices = None;
+        self.mask = None;
     }
 
     /// Returns a reference of the surface.
@@ -118,11 +128,19 @@ impl<P: Copy + Clone + Sized + Default + Eq + PartialEq> MaskedSurface<P> {
             },
         };
         let dst_offset = other.get_index(destination_rect.position.x, destination_rect.position.y);
-        match self.masked_indices.as_ref() {
-            Some(mask_indices) => {
-                mask_indices.iter().for_each(|i| {
-                    let i = *i;
-                    other.buffer[dst_offset + i] = self.surface.buffer[i];
+        match self.mask.as_ref() {
+            Some(mask) => {
+                mask.iter().for_each(|m| match m {
+                    Mask::Pixel(i) => {
+                        let i = *i;
+                        other.buffer[dst_offset + i] = self.surface.buffer[i];
+                    }
+                    Mask::Row { i0, i1 } => {
+                        let i0 = *i0;
+                        let i1 = *i1;
+                        other.buffer[dst_offset + i0..dst_offset + i1]
+                            .copy_from_slice(&self.surface.buffer[i0..i1])
+                    }
                 });
             }
             None => {
