@@ -47,7 +47,7 @@ impl<P: Copy + Clone + Sized + Default + Eq + PartialEq> MaskedSurface<P> {
                 for y in blit_area.position.y..blit_area.position.y + blit_area.size.y {
                     for x in blit_area.position.x..blit_area.position.x + blit_area.size.x {
                         let index = self.surface.get_index(x, y);
-                        if self.surface.buffer[index] == self.mask_color {
+                        if self.surface.buffer[index] != self.mask_color {
                             indices.push(index);
                         }
                     }

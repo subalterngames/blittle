@@ -15,7 +15,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
         .position(position, &dst)
         .unwrap();
 
-    let mut src = MaskedSurface::new(src, SRC_COLOR);
+    let mut src = MaskedSurface::new(src, [255, 0, 0, 0]);
     let mut group = c.benchmark_group("mask");
     group.bench_function("unlocked", |b| b.iter(|| src.blit(&mut dst)));
     src.lock();
