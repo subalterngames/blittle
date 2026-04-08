@@ -1,36 +1,41 @@
-use crate::{Rgba8Surface, SurfaceRef, Zrgb8Surface};
-use bytemuck::cast_slice_mut;
+use crate::{L8Surface, L32Surface, Rgb8Surface, Zrgb8Surface};
+use glam::Vec4;
 
 impl Zrgb8Surface {
-    /// View this ZRGB surface as a mutable RGBA surface reference.
-    /// This is useful for setting per-pixel color values.
-    ///
-    /// NOTE: that the returned value does *not* contain RGBA values!
-    /// This is because ZRGB is meant to be used with [softbuffer](https://docs.rs/softbuffer/latest/softbuffer/).
-    /// The pixel layout is: `[z, r, g, b]` where `z` is always 0.
-    ///
-    /// NOTE: Setting the position, area, etc. will NOT modify the original surface.
-    pub fn as_rgba_ref(&mut self) -> SurfaceRef<'_, [u8; 4]> {
-        SurfaceRef {
-            size: self.size,
-            buffer: cast_slice_mut::<u32, [u8; 4]>(&mut self.buffer),
-            destination_rect: self.destination_rect,
-            blit_area: self.blit_area,
-        }
+    pub const fn pixel_to_l8(pixel: &u32) -> u8 {
+        L32Surface::f32_to_u8(Self::pixel_to_l32(pixel))
     }
-}
 
-impl Rgba8Surface {
-    /// View this surface as a mutable ZRGB surface reference.
-    /// Useful for integration with [softbuffer](https://docs.rs/softbuffer/latest/softbuffer/).
-    ///
-    /// NOTE: Setting the position, area, etc. will NOT modify the original surface.
-    pub fn as_zrgb_ref(&mut self) -> SurfaceRef<'_, u32> {
-        SurfaceRef {
-            size: self.size,
-            buffer: cast_slice_mut::<[u8; 4], u32>(&mut self.buffer),
-            destination_rect: self.destination_rect,
-            blit_area: self.blit_area,
-        }
+    pub const fn pixel_to_la8(pixel: &u32) -> [u8; 2] {
+        [L32Surface::f32_to_u8(Self::pixel_to_l32(pixel)), 255]
+    }
+
+    pub const fn pixel_to_l32(pixel: &u32) -> f32 {
+        let p = pixel.to_le_bytes();
+        Rgb8Surface::grayscale(p[1], p[2], p[3])
+    }
+
+    pub const fn pixel_to_la32(pixel: &u32) -> [f32; 2] {
+        [Self::pixel_to_l32(pixel), 1.]
+    }
+
+    pub const fn pixel_to_rgb8(pixel: &u32) -> [u8; 3] {
+        let p = pixel.to_le_bytes();
+        [p[1], p[2], p[3]]
+    }
+
+    pub const fn pixel_to_rgba8(pixel: &u32) -> [u8; 4] {
+        let p = pixel.to_le_bytes();
+        [p[1], p[2], p[3], 255]
+    }
+
+    pub const fn pixel_to_rgba32(pixel: &u32) -> Vec4 {
+        let p = pixel.to_le_bytes();
+        Vec4::new(
+            L8Surface::u8_to_f32(p[1]),
+            L8Surface::u8_to_f32(p[2]),
+            L8Surface::u8_to_f32(p[3]),
+            1.,
+        )
     }
 }
