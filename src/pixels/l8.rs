@@ -1,38 +1,53 @@
 use crate::L8Surface;
+use crate::pixels::PixelConverter;
 use glam::Vec4;
 
-impl L8Surface {
-    pub const fn pixel_to_la8(pixel: &u8) -> [u8; 2] {
+impl PixelConverter<u8> for L8Surface {
+    #[inline]
+    fn pixel_to_l8(pixel: &u8) -> u8 {
+        *pixel
+    }
+
+    #[inline]
+    fn pixel_to_la8(pixel: &u8) -> [u8; 2] {
         [*pixel, 255]
     }
 
-    pub const fn pixel_to_l32(pixel: &u8) -> f32 {
+    #[inline]
+    fn pixel_to_l32(pixel: &u8) -> f32 {
         Self::u8_to_f32(*pixel)
     }
 
-    pub const fn pixel_to_la32(pixel: &u8) -> [f32; 2] {
+    #[inline]
+    fn pixel_to_la32(pixel: &u8) -> [f32; 2] {
         [Self::pixel_to_l32(pixel), 1.]
     }
 
-    pub const fn pixel_to_rgb8(pixel: &u8) -> [u8; 3] {
+    #[inline]
+    fn pixel_to_rgb8(pixel: &u8) -> [u8; 3] {
         [*pixel; 3]
     }
 
-    pub const fn pixel_to_rgba8(pixel: &u8) -> [u8; 4] {
+    #[inline]
+    fn pixel_to_rgba8(pixel: &u8) -> [u8; 4] {
         let p = *pixel;
         [p, p, p, 255]
     }
 
-    pub const fn pixel_to_zrgb8(pixel: &u8) -> u32 {
+    #[inline]
+    fn pixel_to_zrgb8(pixel: &u8) -> u32 {
         let pixel = *pixel as u32;
         ((pixel << 24) | pixel << 16) | pixel << 8
     }
 
-    pub const fn pixel_to_rgba32(pixel: &u8) -> Vec4 {
+    #[inline]
+    fn pixel_to_rgba32(pixel: &u8) -> Vec4 {
         let p = Self::pixel_to_l32(pixel);
         Vec4::new(p, p, p, 1.)
     }
+}
 
+impl L8Surface {
     pub(super) const fn u8_to_f32(pixel: u8) -> f32 {
         const U8_TO_F32: [f32; 256] = [
             0.0, 0.0039216, 0.0078431, 0.0117647, 0.0156863, 0.0196078, 0.0235294, 0.027451,

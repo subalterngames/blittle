@@ -1,4 +1,4 @@
-use crate::{Rgb8Surface, Rgba8Surface, Rgba32Surface};
+use crate::{PixelConverter, Rgb8Surface, Rgba8Surface, Rgba32Surface};
 
 impl Rgb8Surface {
     /// Copy data into `other`, converting pixel values.
@@ -13,6 +13,21 @@ impl Rgb8Surface {
             .zip(other.buffer.iter_mut())
             .for_each(|(src, dst)| {
                 *dst = Self::pixel_and_alpha_to_rgba32(src, alpha);
+            });
+        other.size = self.size;
+        other.destination_rect = self.destination_rect;
+        other.blit_area = self.blit_area;
+    }
+}
+
+impl Rgba8Surface {
+    /// Copy data into `other`, converting pixel values.
+    pub fn set_rgba32(&self, other: &mut Rgba32Surface) {
+        self.buffer
+            .iter()
+            .zip(other.buffer.iter_mut())
+            .for_each(|(src, dst)| {
+                *dst = Self::pixel_to_rgba32(src);
             });
         other.size = self.size;
         other.destination_rect = self.destination_rect;

@@ -5,15 +5,49 @@ use glam::USizeVec2;
 const SRC_W: usize = 512;
 const SRC_H: usize = 512;
 
+macro_rules! convert {
+    ($group:ident, $from:tt, $to:tt, $name:literal) => {
+        let src = $from::new(USizeVec2::new(SRC_W, SRC_H));
+        $group.bench_function($name, |b| {
+            b.iter(|| {
+                let _ = $to::from(&src);
+            })
+        });
+    };
+}
+
+macro_rules! convert_group {
+    ($c:ident, $from:tt, $group_name:literal, $($to:tt, $name:literal),*) => {
+        let mut group = $c.benchmark_group($group_name);
+        $(
+        {
+            convert!(group, $from, $to, $name);
+        }
+        )*
+        group.finish();
+    };
+}
+
 pub fn criterion_benchmark(c: &mut Criterion) {
-    let src = Zrgb8Surface::new(USizeVec2::new(SRC_W, SRC_H));
-    let mut group = c.benchmark_group("zrgb8");
-    group.bench_function("rgba", |b| {
-        b.iter(|| {
-            let _ = Rgba8Surface::from(&src);
-        })
-    });
-    group.finish();
+    convert_group!(
+        c,
+        L8Surface,
+        "l8",
+        La8Surface,
+        "la8",
+        L32Surface,
+        "l32",
+        La32Surface,
+        "la32",
+        Rgb8Surface,
+        "rgb8",
+        Rgba8Surface,
+        "rgba8",
+        Zrgb8Surface,
+        "zrgb8",
+        Rgba32Surface,
+        "rgba32"
+    );
 }
 
 criterion_group!(benches, criterion_benchmark);

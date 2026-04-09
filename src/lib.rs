@@ -3,7 +3,7 @@
 
 mod error;
 mod mask;
-mod pixel_types;
+mod pixels;
 #[cfg(feature = "png")]
 mod png;
 mod rect;
@@ -13,5 +13,6 @@ mod surface_ref;
 
 pub use error::Error;
 pub use mask::MaskedSurface;
+pub use pixels::PixelConverter;
 pub use rect::*;
 pub use surface::*;
