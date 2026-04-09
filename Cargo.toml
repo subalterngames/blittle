@@ -23,11 +23,15 @@ criterion = "0.8.2"
 sdl2 = "0.38.0"
 
 [[bench]]
-name = "mask"
+name = "convert"
 harness = false
 
 [[bench]]
 name = "crates"
+harness = false
+
+[[bench]]
+name = "mask"
 harness = false
 
 [[bench]]
