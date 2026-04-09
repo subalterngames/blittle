@@ -1,3 +1,5 @@
+use std::ops::Deref;
+use glam::Vec4;
 use crate::{PixelConverter, Rgb8Surface, Rgba8Surface, Rgba32Surface};
 
 impl Rgb8Surface {
@@ -27,13 +29,18 @@ impl Rgba8Surface {
             .iter()
             .zip(other.buffer.iter_mut())
             .for_each(|(src, dst)| {
-                *dst = Self::pixel_to_rgba32(src);
+                if src[3] > 0 {
+                    *dst = Self::pixel_to_rgba32(src);
+                }
             });
         other.size = self.size;
         other.destination_rect = self.destination_rect;
         other.blit_area = self.blit_area;
     }
 }
+
+/// 1. / 256.
+const ONE_256: f32 = 0.0039216;
 
 macro_rules! floats_to_bytes {
     ($self:ident, $set:ident, $pixel:ident, $dest:tt) => {
@@ -43,7 +50,9 @@ macro_rules! floats_to_bytes {
                 .iter()
                 .zip(other.buffer.iter_mut())
                 .for_each(|(src, dst)| {
-                    *dst = Self::$pixel(src);
+                    if src.w >= ONE_256 {
+                        *dst = Self::$pixel(src);
+                    }
                 });
             other.size = $self.size;
             other.destination_rect = $self.destination_rect;
@@ -56,4 +65,12 @@ impl Rgba32Surface {
     floats_to_bytes!(self, set_rgb8, pixel_to_rgb8, Rgb8Surface);
 
     floats_to_bytes!(self, set_rgba8, pixel_to_rgba8, Rgba8Surface);
+
+    fn set_rgba8_pixel(src: &Vec4, dst: &mut [u8; 4]) {
+        let pixel = src * 256.;
+        let pixel = pixel.deref();
+        if pixel.w > 1. {
+            *dst = [pixel.x as u8, pixel.y as u8, pixel.z as u8, pixel.w as u8]
+        }
+    }
 }
