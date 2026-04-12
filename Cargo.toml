@@ -34,10 +34,6 @@ harness = false
 name = "mask"
 harness = false
 
-[[bench]]
-name = "rgba32"
-harness = false
-
 [features]
 default = ["png"]
 png = ["dep:png"]
