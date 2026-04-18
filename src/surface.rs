@@ -25,7 +25,7 @@ pub struct Surface<'s, S: AsRef<[P]> + AsMut<[P]>, P: Copy + Clone + Sized + Def
     pub(crate) buffer: S,
     pub(crate) destination_rect: Option<RectU>,
     pub(crate) blit_area: Option<RectU>,
-    _p: PhantomData<&'s P>,
+    pub(crate) _p: PhantomData<&'s P>,
 }
 
 impl<P: Copy + Clone + Sized + Default + Zeroable + Pod> Surface<'_, Vec<P>, P> {

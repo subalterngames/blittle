@@ -9,8 +9,6 @@ mod png;
 mod rect;
 mod surface;
 #[cfg(feature = "softbuffer")]
-pub mod zrgb;
-#[cfg(feature = "softbuffer")]
 mod sb;
 
 pub use error::Error;

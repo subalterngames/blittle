@@ -1,3 +1,4 @@
+use bytemuck::{Pod, Zeroable};
 use crate::error::Error;
 use crate::{RectU, Surface};
 use glam::USizeVec2;
@@ -14,14 +15,14 @@ enum Mask {
 ///
 /// MaskedSurfaces can be locked or unlocked.
 /// If the surface is locked, then pixels can't be manipulated, but blit speed is optimized.
-pub struct MaskedSurface<P: Copy + Clone + Sized + Default> {
-    surface: Surface<P>,
+pub struct MaskedSurface<'s, S: AsRef<[P]> + AsMut<[P]>, P: Copy + Clone + Sized + Default + Zeroable + Pod + Eq + PartialEq> {
+    surface: Surface<'s, S, P>,
     mask_color: P,
     mask: Option<Vec<Mask>>,
 }
 
-impl<P: Copy + Clone + Sized + Default + Eq + PartialEq> MaskedSurface<P> {
-    pub const fn new(surface: Surface<P>, mask_color: P) -> Self {
+impl<'s, S: AsRef<[P]> + AsMut<[P]>, P: Copy + Clone + Sized + Default + Zeroable + Pod + Eq + PartialEq> MaskedSurface<'s, S, P> {
+    pub const fn new(surface: Surface<'s, S, P>, mask_color: P) -> Self {
         Self {
             surface,
             mask_color,
@@ -60,7 +61,7 @@ impl<P: Copy + Clone + Sized + Default + Eq + PartialEq> MaskedSurface<P> {
             for y in y0..y1 {
                 let i0 = self.surface.get_index(x0, y);
                 let i1 = self.surface.get_index(x1, y);
-                if self.surface.buffer[i0..i1]
+                if self.surface.buffer.as_ref()[i0..i1]
                     .iter()
                     .all(|p| *p != self.mask_color)
                 {
@@ -69,7 +70,7 @@ impl<P: Copy + Clone + Sized + Default + Eq + PartialEq> MaskedSurface<P> {
                 } else {
                     // Remember each unmasked pixel.
                     mask.extend((i0..i1).filter_map(|i| {
-                        if self.surface.buffer[i] != self.mask_color {
+                        if self.surface.buffer.as_ref()[i] != self.mask_color {
                             Some(Mask::Pixel(i))
                         } else {
                             None
@@ -96,13 +97,13 @@ impl<P: Copy + Clone + Sized + Default + Eq + PartialEq> MaskedSurface<P> {
     ///
     /// Note that `self.blit(&mut destination)` is not the same as `self.surface.blit(&mut destination)`
     /// because the latter won't apply the mask.
-    pub const fn surface(&self) -> &Surface<P> {
+    pub const fn surface(&self) -> &Surface<'s, S, P> {
         &self.surface
     }
 
     /// Returns a mutable reference of the surface.
     /// Returns an error if the masked surface is locked.
-    pub const fn surface_mut(&mut self) -> Result<&mut Surface<P>, Error> {
+    pub const fn surface_mut(&mut self) -> Result<&mut Surface<'s, S, P>, Error> {
         if self.is_locked() {
             Err(Error::Locked)
         } else {
@@ -113,7 +114,7 @@ impl<P: Copy + Clone + Sized + Default + Eq + PartialEq> MaskedSurface<P> {
     /// Blit onto `other`, using a mask.
     ///
     /// This can be called if this masked surface is unlocked, but it'll be slower.
-    pub fn blit(&self, other: &mut Surface<P>) -> Result<(), Error> {
+    pub fn blit(&self, other: &mut Surface<'s, S, P>) -> Result<(), Error> {
         // Try to get the destination rect.
         let destination_rect = self
             .surface
@@ -133,13 +134,13 @@ impl<P: Copy + Clone + Sized + Default + Eq + PartialEq> MaskedSurface<P> {
                 mask.iter().for_each(|m| match m {
                     Mask::Pixel(i) => {
                         let i = *i;
-                        other.buffer[dst_offset + i] = self.surface.buffer[i];
+                        other.buffer.as_mut()[dst_offset + i] = self.surface.buffer.as_ref()[i];
                     }
                     Mask::Row { i0, i1 } => {
                         let i0 = *i0;
                         let i1 = *i1;
-                        other.buffer[dst_offset + i0..dst_offset + i1]
-                            .copy_from_slice(&self.surface.buffer[i0..i1])
+                        other.buffer.as_mut()[dst_offset + i0..dst_offset + i1]
+                            .copy_from_slice(&self.surface.buffer.as_ref()[i0..i1])
                     }
                 });
             }
@@ -151,8 +152,8 @@ impl<P: Copy + Clone + Sized + Default + Eq + PartialEq> MaskedSurface<P> {
                     .get_index(blit_area.position.x, blit_area.position.y);
                 for i in 0..len {
                     let src_index = src_offset + i;
-                    if self.surface.buffer[src_index] != self.mask_color {
-                        other.buffer[dst_offset + i] = self.surface.buffer[src_index];
+                    if self.surface.buffer.as_ref()[src_index] != self.mask_color {
+                        other.buffer.as_mut()[dst_offset + i] = self.surface.buffer.as_ref()[src_index];
                     }
                 }
             }
@@ -181,9 +182,8 @@ mod tests {
 
         let src_color = [255u8, 255, 255];
         let mask_color = [255, 0, 255];
-        let mut src = Surface::new_filled(src_size, src_color)
-            .position(position, &dst)
-            .unwrap();
+        let mut src = Surface::new_filled(src_size, src_color);
+        src.set_position(position, &dst).unwrap();
         for pixel in src.buffer.chunks_exact_mut(3) {
             pixel[0] = mask_color;
         }
