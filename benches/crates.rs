@@ -20,9 +20,8 @@ fn criterion_benchmark(c: &mut Criterion) {
     // blittle
     let position = I64Vec2::new(2, 12);
     let mut dst = Rgba8Surface::new_filled(USizeVec2::new(DST_W, DST_H), [255; 4]);
-    let src = Rgba8Surface::new_filled(USizeVec2::new(SRC_W, SRC_H), SRC_COLOR)
-        .position(position, &dst)
-        .unwrap();
+    let mut src = Rgba8Surface::new_filled(USizeVec2::new(SRC_W, SRC_H), SRC_COLOR);
+    src.set_position(position, &dst).unwrap();
 
     // blit
     let mut dst_u32 = vec![0u32; DST_W * DST_H];

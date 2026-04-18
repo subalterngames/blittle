@@ -43,8 +43,6 @@ pub fn criterion_benchmark(c: &mut Criterion) {
         "rgb8",
         Rgba8Surface,
         "rgba8",
-        Zrgb8Surface,
-        "zrgb8",
         Rgba32Surface,
         "rgba32"
     );
@@ -63,8 +61,6 @@ pub fn criterion_benchmark(c: &mut Criterion) {
         "rgb8",
         Rgba8Surface,
         "rgba8",
-        Zrgb8Surface,
-        "zrgb8",
         Rgba32Surface,
         "rgba32"
     );
@@ -83,8 +79,6 @@ pub fn criterion_benchmark(c: &mut Criterion) {
         "rgb8",
         Rgba8Surface,
         "rgba8",
-        Zrgb8Surface,
-        "zrgb8",
         Rgba32Surface,
         "rgba32"
     );
@@ -103,8 +97,6 @@ pub fn criterion_benchmark(c: &mut Criterion) {
         "rgb8",
         Rgba8Surface,
         "rgba8",
-        Zrgb8Surface,
-        "zrgb8",
         Rgba32Surface,
         "rgba32"
     );
@@ -123,8 +115,6 @@ pub fn criterion_benchmark(c: &mut Criterion) {
         "la32",
         Rgba8Surface,
         "rgba8",
-        Zrgb8Surface,
-        "zrgb8",
         Rgba32Surface,
         "rgba32"
     );
@@ -143,28 +133,6 @@ pub fn criterion_benchmark(c: &mut Criterion) {
         "la32",
         Rgb8Surface,
         "rgb8",
-        Zrgb8Surface,
-        "zrgb8",
-        Rgba32Surface,
-        "rgba32"
-    );
-
-    convert_group!(
-        c,
-        Zrgb8Surface,
-        "zrgb8",
-        L8Surface,
-        "l8",
-        La8Surface,
-        "la8",
-        L32Surface,
-        "l32",
-        La32Surface,
-        "la32",
-        Rgb8Surface,
-        "rgb8",
-        Rgba8Surface,
-        "rgba8",
         Rgba32Surface,
         "rgba32"
     );
@@ -184,9 +152,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
         Rgb8Surface,
         "rgb8",
         Rgba8Surface,
-        "rgba8",
-        Zrgb8Surface,
-        "zrgb8"
+        "rgba8"
     );
 }
 

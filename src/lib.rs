@@ -1,20 +1,22 @@
 #![doc = include_str!("../README.md")]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 
+mod convert;
 mod error;
 mod mask;
-mod pixels;
 #[cfg(feature = "png")]
-mod png;
+pub mod png;
 mod rect;
-mod surface;
 #[cfg(feature = "softbuffer")]
-mod sb;
+pub mod sb;
+mod surface;
+mod surface_trait;
 
+pub use convert::PixelConverter;
 pub use error::Error;
 pub use mask::MaskedSurface;
-pub use pixels::PixelConverter;
 pub use rect::*;
-pub use surface::*;
 #[cfg(feature = "softbuffer")]
 pub use softbuffer;
+pub use surface::*;
+pub use surface_trait::SurfaceTrait;

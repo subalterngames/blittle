@@ -1,9 +1,9 @@
-use crate::pixels::PixelConverter;
 use crate::Rgba32Surface;
+use crate::convert::PixelConverter;
 use glam::{Vec4, Vec4Swizzles};
 use std::ops::Deref;
 
-impl PixelConverter<Vec4> for Rgba32Surface {
+impl PixelConverter<Vec4> for Rgba32Surface<'_> {
     #[inline]
     fn pixel_to_l8(pixel: &Vec4) -> u8 {
         Self::pixel_to_l32(pixel) as u8
@@ -13,10 +13,7 @@ impl PixelConverter<Vec4> for Rgba32Surface {
     fn pixel_to_la8(pixel: &Vec4) -> [u8; 2] {
         let pixel = pixel * 256.;
         let p = pixel.deref();
-        [
-            ((p.x + p.y + p.z) / 3.) as u8,
-            p.w as u8
-        ]
+        [((p.x + p.y + p.z) / 3.) as u8, p.w as u8]
     }
 
     #[inline]
@@ -28,10 +25,7 @@ impl PixelConverter<Vec4> for Rgba32Surface {
     fn pixel_to_la32(pixel: &Vec4) -> [f32; 2] {
         let pixel = pixel * 256.;
         let p = pixel.deref();
-        [
-            (p.x + p.y + p.z) / 3.,
-            p.w
-        ]
+        [(p.x + p.y + p.z) / 3., p.w]
     }
 
     #[inline]
@@ -46,13 +40,6 @@ impl PixelConverter<Vec4> for Rgba32Surface {
         let pixel = pixel * 256.;
         let pixel = pixel.deref();
         [pixel.x as u8, pixel.y as u8, pixel.z as u8, pixel.w as u8]
-    }
-
-    #[inline]
-    fn pixel_to_zrgb8(pixel: &Vec4) -> u32 {
-        let p = pixel * 256.;
-        let p = p.deref();
-        u32::from_le_bytes([0, p.x as u8, p.y as u8, p.z as u8])
     }
 
     #[inline]

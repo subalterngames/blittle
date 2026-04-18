@@ -11,9 +11,8 @@ const SRC_COLOR: [u8; 4] = [0; 4];
 pub fn criterion_benchmark(c: &mut Criterion) {
     let position = I64Vec2::new(2, 12);
     let mut dst = Rgba8Surface::new_filled(USizeVec2::new(DST_W, DST_H), [255; 4]);
-    let src = Rgba8Surface::new_filled(USizeVec2::new(SRC_W, SRC_H), SRC_COLOR)
-        .position(position, &dst)
-        .unwrap();
+    let mut src = Rgba8Surface::new_filled(USizeVec2::new(SRC_W, SRC_H), SRC_COLOR);
+    src.set_position(position, &dst).unwrap();
 
     let mask_color = [255, 0, 0, 0];
     let mut src = MaskedSurface::new(src, mask_color);
@@ -34,9 +33,8 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     src.lock();
     group.bench_function("locked rows", |b| b.iter(|| src.blit(&mut dst)));
     // Per-pixel.
-    let src = Rgba8Surface::new_filled(USizeVec2::new(SRC_W, SRC_H), SRC_COLOR)
-        .position(position, &dst)
-        .unwrap();
+    let mut src = Rgba8Surface::new_filled(USizeVec2::new(SRC_W, SRC_H), SRC_COLOR);
+    src.set_position(position, &dst).unwrap();
 
     let mask_color = [255, 0, 0, 0];
     let mut src = MaskedSurface::new(src, mask_color);

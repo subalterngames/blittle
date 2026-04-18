@@ -1,8 +1,9 @@
-use std::marker::PhantomData;
 use crate::error::Error;
 use crate::rect::{RectI, RectU};
-use bytemuck::{cast_slice, cast_slice_mut, Pod, Zeroable};
+use crate::surface_trait::SurfaceTrait;
+use bytemuck::{Pod, Zeroable, cast_slice_mut};
 use glam::{I64Vec2, USizeVec2, Vec4};
+use std::marker::PhantomData;
 
 /// Grayscale.
 pub type L8Surface<'s> = Surface<'s, Vec<u8>, u8>;
@@ -13,14 +14,18 @@ pub type Rgb8Surface<'s> = Surface<'s, Vec<[u8; 3]>, [u8; 3]>;
 /// Red, green, blue, alpha.
 pub type Rgba8Surface<'s> = Surface<'s, Vec<[u8; 4]>, [u8; 4]>;
 /// 32-bit grayscale.
-pub type L32Surface<'s> = Surface<'s, Vec<u8>, f32>;
+pub type L32Surface<'s> = Surface<'s, Vec<f32>, f32>;
 /// 32-bit grayscale + alpha.
-pub type La32Surface<'s> = Surface<'s, Vec<[u8; 2]>, [f32; 2]>;
+pub type La32Surface<'s> = Surface<'s, Vec<[f32; 2]>, [f32; 2]>;
 /// Red, green, blue, alpha as Vec4s.
 /// This uses glam for that sweet sweet SIMD, so you can't get the underlying bytes buffer.
 pub type Rgba32Surface<'s> = Surface<'s, Vec<Vec4>, Vec4>;
 
-pub struct Surface<'s, S: AsRef<[P]> + AsMut<[P]>, P: Copy + Clone + Sized + Default + Zeroable + Pod> {
+pub struct Surface<
+    's,
+    S: AsRef<[P]> + AsMut<[P]>,
+    P: Copy + Clone + Sized + Default + Zeroable + Pod,
+> {
     pub(crate) size: USizeVec2,
     pub(crate) buffer: S,
     pub(crate) destination_rect: Option<RectU>,
@@ -39,7 +44,7 @@ impl<P: Copy + Clone + Sized + Default + Zeroable + Pod> Surface<'_, Vec<P>, P> 
             buffer: vec![P::default(); size.x * size.y],
             destination_rect: None,
             blit_area: None,
-            _p: PhantomData::default(),
+            _p: PhantomData,
         }
     }
 
@@ -53,7 +58,7 @@ impl<P: Copy + Clone + Sized + Default + Zeroable + Pod> Surface<'_, Vec<P>, P> 
             buffer: vec![color; size.x * size.y],
             destination_rect: None,
             blit_area: None,
-            _p: PhantomData::default(),
+            _p: PhantomData,
         }
     }
 }
@@ -63,7 +68,7 @@ impl<'s, P: Copy + Clone + Sized + Default + Zeroable + Pod> Surface<'s, &'s mut
     ///
     /// The position defaults to `(0, 0)`.
     /// The underlying pixel buffer is set to the pixel's default value (i.e. `[0, 0, 0]`), length `size.x * size.y`.
-    /// 
+    ///
     /// Returns an error if `size.x * size.y != buffer.len()`
     pub fn new(size: USizeVec2, buffer: &'s mut [P]) -> Result<Self, Error> {
         let len = buffer.len();
@@ -73,32 +78,23 @@ impl<'s, P: Copy + Clone + Sized + Default + Zeroable + Pod> Surface<'s, &'s mut
                 buffer,
                 destination_rect: None,
                 blit_area: None,
-                _p: PhantomData::default()
+                _p: PhantomData,
             })
-        }
-        else {
+        } else {
             Err(Error::InvalidSize { len, size })
         }
     }
 }
 
-impl <'s, S: AsRef<[P]> + AsMut<[P]>, P: Copy + Clone + Sized + Default + Zeroable + Pod> Surface<'_, S, P> {
+impl<S: AsRef<[P]> + AsMut<[P]>, P: Copy + Clone + Sized + Default + Zeroable + Pod>
+    Surface<'_, S, P>
+{
     /// Blit onto `other`.
     ///
     /// Be sure to call [Self::position] or [Self::set_position]
     /// before blitting to a *new* `other` surface.
     pub fn blit(&self, other: &mut Self) -> Result<(), Error> {
-        // Try to get the destination rect.
-        let destination_rect = self.destination_rect.ok_or(Error::NoDestinationRect)?;
-
-        // Blit either a chunk of the source buffer, or all of it.
-        let blit_area = match self.blit_area {
-            Some(rect) => rect,
-            None => RectU {
-                position: USizeVec2::ZERO,
-                size: destination_rect.size,
-            },
-        };
+        let (destination_rect, blit_area) = self.get_blit_params()?;
 
         // Iterate per-row.
         (0..blit_area.size.y).for_each(|src_y| {
@@ -135,7 +131,7 @@ impl <'s, S: AsRef<[P]> + AsMut<[P]>, P: Copy + Clone + Sized + Default + Zeroab
     ) -> Result<RectU, Error> {
         let rect = RectI {
             position,
-            size: self.size
+            size: self.size,
         };
         let destination_rect = RectI::from_size(destination.size);
         match rect.clip(destination_rect) {
@@ -146,17 +142,12 @@ impl <'s, S: AsRef<[P]> + AsMut<[P]>, P: Copy + Clone + Sized + Default + Zeroab
             None => Err(Error::InvalidDestinationRect(rect, destination_rect)),
         }
     }
-    
+
     pub const fn get_position(&self) -> Option<USizeVec2> {
         match self.destination_rect {
             Some(rect) => Some(rect.position),
-            None => None
+            None => None,
         }
-    }
-
-    /// Returns the size of the surface.
-    pub const fn get_size(&self) -> USizeVec2 {
-        self.size
     }
 
     /// Set an `area` within the pixel buffer to blit.
@@ -164,32 +155,21 @@ impl <'s, S: AsRef<[P]> + AsMut<[P]>, P: Copy + Clone + Sized + Default + Zeroab
     /// If `area` is None, then the entirety of this surface will blit (this is the default behavior).
     pub const fn set_area(&mut self, area: Option<RectI>) -> Result<Option<RectU>, Error> {
         match self.destination_rect {
-            Some(destination_rect) => {
-                match area {
-                    Some(area) => {
-                        let rect = RectI::from_size(destination_rect.size);
-                        match area.clip(rect) {
-                            Some(area) => {
-                                self.blit_area = Some(area);
-                                Ok(self.blit_area)
-                            }
-                            None => Err(Error::InvalidArea(area)),
+            Some(destination_rect) => match area {
+                Some(area) => {
+                    let rect = RectI::from_size(destination_rect.size);
+                    match area.clip(rect) {
+                        Some(area) => {
+                            self.blit_area = Some(area);
+                            Ok(self.blit_area)
                         }
+                        None => Err(Error::InvalidArea(area)),
                     }
-                    None => Ok(None),
                 }
-            }
-            None => Err(Error::AreaBeforePosition)
+                None => Ok(None),
+            },
+            None => Err(Error::AreaBeforePosition),
         }
-    }
-
-    /// The underlying pixel buffer.
-    pub fn buffer(&self) -> &[P] {
-        self.buffer.as_ref()
-    }
-
-    pub fn buffer_mut(&mut self) -> &mut [P] {
-        self.buffer.as_mut()
     }
 
     /// Iterate through the pixel buffer per-row, top to bottom.
@@ -257,21 +237,52 @@ impl <'s, S: AsRef<[P]> + AsMut<[P]>, P: Copy + Clone + Sized + Default + Zeroab
         self.blit_area = None;
         self.destination_rect = None;
     }
+}
 
-    /// The underlying buffer as bytes.
-    pub fn bytes(&self) -> &[u8] {
-        cast_slice::<P, u8>(self.buffer.as_ref())
+impl<S: AsRef<[P]> + AsMut<[P]>, P: Copy + Clone + Sized + Default + Zeroable + Pod> SurfaceTrait<P>
+    for Surface<'_, S, P>
+{
+    fn get_size(&self) -> USizeVec2 {
+        self.size
+    }
+
+    /// The underlying pixel buffer.
+    fn buffer(&self) -> &[P] {
+        self.buffer.as_ref()
+    }
+
+    fn buffer_mut(&mut self) -> &mut [P] {
+        self.buffer.as_mut()
     }
 
     /// The underlying mutable buffer as bytes.
-    pub fn bytes_mut(&mut self) -> &mut [u8] {
-        cast_slice_mut::<P, u8>(self.buffer.as_mut())
+    fn bytes_mut(&mut self) -> &mut [u8] {
+        cast_slice_mut::<P, u8>(self.buffer_mut())
+    }
+
+    fn get_blit_params(&self) -> Result<(RectU, RectU), Error> {
+        match self.destination_rect {
+            Some(destination_rect) => {
+                // Blit either a chunk of the source buffer, or all of it.
+                let blit_area = match self.blit_area {
+                    Some(rect) => rect,
+                    None => RectU {
+                        position: USizeVec2::ZERO,
+                        size: destination_rect.size,
+                    },
+                };
+                Ok((destination_rect, blit_area))
+            }
+            None => Err(Error::NoDestinationRect),
+        }
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::png::PngWriter;
+    use bytemuck::cast_slice;
     #[cfg(feature = "png")]
     use png::ColorType;
     #[cfg(feature = "png")]
@@ -403,14 +414,15 @@ mod tests {
         src.set_area(Some(RectI {
             position: I64Vec2::new(20, 3),
             size: USizeVec2::new(50, 70),
-        })).unwrap();
+        }))
+        .unwrap();
         src.blit(&mut dst).unwrap();
         dst.write_png(current_dir().unwrap().join("test_output/clipped_text.png"))
             .unwrap();
     }
 
     #[cfg(feature = "png")]
-    fn read_png(bytes: &[u8]) -> Rgb8Surface {
+    fn read_png(bytes: &[u8]) -> Rgb8Surface<'_> {
         let decoder = png::Decoder::new(Cursor::new(bytes));
         let mut reader = decoder.read_info().unwrap();
         let mut buf = vec![0; reader.output_buffer_size().unwrap()];

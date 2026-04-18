@@ -1,8 +1,8 @@
-use crate::pixels::PixelConverter;
+use crate::convert::PixelConverter;
 use crate::{L8Surface, L32Surface, Rgb8Surface, Rgba8Surface};
 use glam::Vec4;
 
-impl PixelConverter<[u8; 4]> for Rgba8Surface {
+impl PixelConverter<[u8; 4]> for Rgba8Surface<'_> {
     #[inline]
     fn pixel_to_l8(pixel: &[u8; 4]) -> u8 {
         L32Surface::f32_to_u8(Self::pixel_to_l32(pixel))
@@ -31,11 +31,6 @@ impl PixelConverter<[u8; 4]> for Rgba8Surface {
     #[inline]
     fn pixel_to_rgba8(pixel: &[u8; 4]) -> [u8; 4] {
         *pixel
-    }
-
-    #[inline]
-    fn pixel_to_zrgb8(pixel: &[u8; 4]) -> u32 {
-        u32::from_le_bytes([0, pixel[0], pixel[1], pixel[2]])
     }
 
     #[inline]

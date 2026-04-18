@@ -1,7 +1,7 @@
-use bytemuck::{Pod, Zeroable};
+use crate::Surface;
 use crate::error::Error;
-use crate::{RectU, Surface};
-use glam::USizeVec2;
+use crate::surface_trait::SurfaceTrait;
+use bytemuck::{Pod, Zeroable};
 
 enum Mask {
     Pixel(usize),
@@ -15,13 +15,22 @@ enum Mask {
 ///
 /// MaskedSurfaces can be locked or unlocked.
 /// If the surface is locked, then pixels can't be manipulated, but blit speed is optimized.
-pub struct MaskedSurface<'s, S: AsRef<[P]> + AsMut<[P]>, P: Copy + Clone + Sized + Default + Zeroable + Pod + Eq + PartialEq> {
+pub struct MaskedSurface<
+    's,
+    S: AsRef<[P]> + AsMut<[P]>,
+    P: Copy + Clone + Sized + Default + Zeroable + Pod + Eq + PartialEq,
+> {
     surface: Surface<'s, S, P>,
     mask_color: P,
     mask: Option<Vec<Mask>>,
 }
 
-impl<'s, S: AsRef<[P]> + AsMut<[P]>, P: Copy + Clone + Sized + Default + Zeroable + Pod + Eq + PartialEq> MaskedSurface<'s, S, P> {
+impl<
+    's,
+    S: AsRef<[P]> + AsMut<[P]>,
+    P: Copy + Clone + Sized + Default + Zeroable + Pod + Eq + PartialEq,
+> MaskedSurface<'s, S, P>
+{
     pub const fn new(surface: Surface<'s, S, P>, mask_color: P) -> Self {
         Self {
             surface,
@@ -115,19 +124,7 @@ impl<'s, S: AsRef<[P]> + AsMut<[P]>, P: Copy + Clone + Sized + Default + Zeroabl
     ///
     /// This can be called if this masked surface is unlocked, but it'll be slower.
     pub fn blit(&self, other: &mut Surface<'s, S, P>) -> Result<(), Error> {
-        // Try to get the destination rect.
-        let destination_rect = self
-            .surface
-            .destination_rect
-            .ok_or(Error::NoDestinationRect)?;
-        // Blit either a chunk of the source buffer, or all of it.
-        let blit_area = match self.surface.blit_area {
-            Some(rect) => rect,
-            None => RectU {
-                position: USizeVec2::ZERO,
-                size: destination_rect.size,
-            },
-        };
+        let (destination_rect, blit_area) = self.surface.get_blit_params()?;
         let dst_offset = other.get_index(destination_rect.position.x, destination_rect.position.y);
         match self.mask.as_ref() {
             Some(mask) => {
@@ -153,7 +150,8 @@ impl<'s, S: AsRef<[P]> + AsMut<[P]>, P: Copy + Clone + Sized + Default + Zeroabl
                 for i in 0..len {
                     let src_index = src_offset + i;
                     if self.surface.buffer.as_ref()[src_index] != self.mask_color {
-                        other.buffer.as_mut()[dst_offset + i] = self.surface.buffer.as_ref()[src_index];
+                        other.buffer.as_mut()[dst_offset + i] =
+                            self.surface.buffer.as_ref()[src_index];
                     }
                 }
             }
@@ -166,7 +164,8 @@ impl<'s, S: AsRef<[P]> + AsMut<[P]>, P: Copy + Clone + Sized + Default + Zeroabl
 #[cfg(test)]
 mod tests {
     use super::*;
-    use glam::I64Vec2;
+    use crate::png::PngWriter;
+    use glam::{I64Vec2, USizeVec2};
     use std::env::current_dir;
 
     const SRC_W: usize = 32;
