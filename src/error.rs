@@ -5,6 +5,11 @@ use crate::rect::RectI;
 
 #[derive(Debug, Error)]
 pub enum Error {
+    #[error("Tried to create a surface from a buffer of len {} but size.x * size.y != len: {}", len, size)]
+    InvalidSize {
+        size: USizeVec2,
+        len: usize
+    },
     #[error("The destination hasn't been set.")]
     NoDestinationRect,
     #[error("Tried to set the area before setting the position relative to the destination.")]

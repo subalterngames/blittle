@@ -1,7 +1,6 @@
 use crate::error::Error;
 use crate::{
     L8Surface, L32Surface, La8Surface, La32Surface, Rgb8Surface, Rgba8Surface, Rgba32Surface,
-    Zrgb8Surface,
 };
 use std::fs::File;
 use std::io::BufWriter;
@@ -47,19 +46,6 @@ impl_png_bytes!(La8Surface, GrayscaleAlpha, Eight);
 impl_png_bytes!(Rgb8Surface, Rgb, Eight);
 impl_png_bytes!(Rgba8Surface, Rgba, Eight);
 
-impl Zrgb8Surface {
-    fn rgb8_bytes(&self) -> Vec<u8> {
-        self.buffer
-            .iter()
-            .flat_map(|p| {
-                let p = p.to_le_bytes();
-                [p[1], p[2], p[3]]
-            })
-            .collect()
-    }
-}
-
-impl_png!(Zrgb8Surface, Rgb, Eight, rgb8_bytes);
 impl_png_convert!(L32Surface, L8Surface);
 impl_png_convert!(La32Surface, La8Surface);
 impl_png_convert!(Rgba32Surface, Rgba8Surface);

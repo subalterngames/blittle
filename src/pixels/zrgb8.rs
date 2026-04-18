@@ -2,6 +2,7 @@ use crate::pixels::PixelConverter;
 use crate::{L8Surface, L32Surface, Rgb8Surface, Zrgb8Surface};
 use glam::Vec4;
 
+
 impl PixelConverter<u32> for Zrgb8Surface {
     #[inline]
     fn pixel_to_l8(pixel: &u32) -> u8 {

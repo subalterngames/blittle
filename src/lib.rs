@@ -8,10 +8,15 @@ mod pixels;
 mod png;
 mod rect;
 mod surface;
-mod surface_ref;
+#[cfg(feature = "softbuffer")]
+pub mod zrgb;
+#[cfg(feature = "softbuffer")]
+mod sb;
 
 pub use error::Error;
 pub use mask::MaskedSurface;
 pub use pixels::PixelConverter;
 pub use rect::*;
 pub use surface::*;
+#[cfg(feature = "softbuffer")]
+pub use softbuffer;
