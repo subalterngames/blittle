@@ -3,38 +3,31 @@ use crate::convert::PixelConverter;
 use glam::Vec4;
 
 impl<S: AsRef<[u8]> + AsMut<[u8]>> PixelConverter<u8> for Surface<'_, S, u8> {
-    #[inline]
     fn pixel_to_l8(pixel: &u8) -> u8 {
         *pixel
     }
 
-    #[inline]
     fn pixel_to_la8(pixel: &u8) -> [u8; 2] {
         [*pixel, 255]
     }
 
-    #[inline]
     fn pixel_to_l32(pixel: &u8) -> f32 {
         Self::u8_to_f32(*pixel)
     }
 
-    #[inline]
     fn pixel_to_la32(pixel: &u8) -> [f32; 2] {
         [Self::pixel_to_l32(pixel), 1.]
     }
 
-    #[inline]
     fn pixel_to_rgb8(pixel: &u8) -> [u8; 3] {
         [*pixel; 3]
     }
 
-    #[inline]
     fn pixel_to_rgba8(pixel: &u8) -> [u8; 4] {
         let p = *pixel;
         [p, p, p, 255]
     }
 
-    #[inline]
     fn pixel_to_rgba32(pixel: &u8) -> Vec4 {
         let p = Self::pixel_to_l32(pixel);
         Vec4::new(p, p, p, 1.)
