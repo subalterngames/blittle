@@ -1,8 +1,8 @@
-use crate::L8Surface;
+use crate::Surface;
 use crate::convert::PixelConverter;
 use glam::Vec4;
 
-impl PixelConverter<u8> for L8Surface<'_> {
+impl<S: AsRef<[u8]> + AsMut<[u8]>> PixelConverter<u8> for Surface<'_, S, u8> {
     #[inline]
     fn pixel_to_l8(pixel: &u8) -> u8 {
         *pixel
@@ -41,7 +41,7 @@ impl PixelConverter<u8> for L8Surface<'_> {
     }
 }
 
-impl L8Surface<'_> {
+impl<S: AsRef<[u8]> + AsMut<[u8]>> Surface<'_, S, u8> {
     pub(crate) const fn u8_to_f32(pixel: u8) -> f32 {
         const U8_TO_F32: [f32; 256] = [
             0.0, 0.0039216, 0.0078431, 0.0117647, 0.0156863, 0.0196078, 0.0235294, 0.027451,

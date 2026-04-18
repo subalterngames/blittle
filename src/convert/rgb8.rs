@@ -1,8 +1,8 @@
 use crate::convert::PixelConverter;
-use crate::{L8Surface, L32Surface, Rgb8Surface};
+use crate::{L8Surface, L32Surface, Surface};
 use glam::Vec4;
 
-impl PixelConverter<[u8; 3]> for Rgb8Surface<'_> {
+impl<S: AsRef<[[u8; 3]]> + AsMut<[[u8; 3]]>> PixelConverter<[u8; 3]> for Surface<'_, S, [u8; 3]> {
     #[inline]
     fn pixel_to_l8(pixel: &[u8; 3]) -> u8 {
         L32Surface::f32_to_u8(Self::pixel_to_l32(pixel))
@@ -44,7 +44,7 @@ impl PixelConverter<[u8; 3]> for Rgb8Surface<'_> {
     }
 }
 
-impl Rgb8Surface<'_> {
+impl<S: AsRef<[[u8; 3]]> + AsMut<[[u8; 3]]>> Surface<'_, S, [u8; 3]> {
     pub(crate) const fn grayscale(r: u8, g: u8, b: u8) -> f32 {
         (L8Surface::u8_to_f32(r) + L8Surface::u8_to_f32(g) + L8Surface::u8_to_f32(b)) / 3.
     }

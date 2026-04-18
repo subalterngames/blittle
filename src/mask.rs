@@ -1,6 +1,5 @@
 use crate::Surface;
 use crate::error::Error;
-use crate::surface_trait::SurfaceTrait;
 use bytemuck::{Pod, Zeroable};
 
 enum Mask {
@@ -164,7 +163,8 @@ impl<
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::png::PngWriter;
+    use crate::Rgb8Surface;
+    use crate::png::Png;
     use glam::{I64Vec2, USizeVec2};
     use std::env::current_dir;
 
@@ -190,14 +190,25 @@ mod tests {
 
         src.blit(&mut dst).unwrap();
 
-        dst.write_png(current_dir().unwrap().join("test_output/mask_unlocked.png"))
-            .unwrap();
+        Rgb8Surface::write_png(
+            &dst,
+            current_dir()
+                .unwrap()
+                .join("test_output")
+                .join("mask_unlocked.png"),
+        )
+        .unwrap();
 
         // Lock.
         src.lock();
         src.blit(&mut dst).unwrap();
-
-        dst.write_png(current_dir().unwrap().join("test_output/mask_locked.png"))
-            .unwrap();
+        Rgb8Surface::write_png(
+            &dst,
+            current_dir()
+                .unwrap()
+                .join("test_output")
+                .join("mask_locked.png"),
+        )
+        .unwrap();
     }
 }

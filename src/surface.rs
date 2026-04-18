@@ -1,7 +1,6 @@
 use crate::error::Error;
 use crate::rect::{RectI, RectU};
-use crate::surface_trait::SurfaceTrait;
-use bytemuck::{Pod, Zeroable, cast_slice_mut};
+use bytemuck::{Pod, Zeroable, cast_slice, cast_slice_mut};
 use glam::{I64Vec2, USizeVec2, Vec4};
 use std::marker::PhantomData;
 
@@ -237,30 +236,31 @@ impl<S: AsRef<[P]> + AsMut<[P]>, P: Copy + Clone + Sized + Default + Zeroable + 
         self.blit_area = None;
         self.destination_rect = None;
     }
-}
 
-impl<S: AsRef<[P]> + AsMut<[P]>, P: Copy + Clone + Sized + Default + Zeroable + Pod> SurfaceTrait<P>
-    for Surface<'_, S, P>
-{
-    fn get_size(&self) -> USizeVec2 {
+    pub fn get_size(&self) -> USizeVec2 {
         self.size
     }
 
     /// The underlying pixel buffer.
-    fn buffer(&self) -> &[P] {
+    pub fn buffer(&self) -> &[P] {
         self.buffer.as_ref()
     }
 
-    fn buffer_mut(&mut self) -> &mut [P] {
+    pub fn buffer_mut(&mut self) -> &mut [P] {
         self.buffer.as_mut()
     }
 
     /// The underlying mutable buffer as bytes.
-    fn bytes_mut(&mut self) -> &mut [u8] {
+    pub fn bytes(&self) -> &[u8] {
+        cast_slice::<P, u8>(self.buffer())
+    }
+
+    /// The underlying mutable buffer as bytes.
+    pub fn bytes_mut(&mut self) -> &mut [u8] {
         cast_slice_mut::<P, u8>(self.buffer_mut())
     }
 
-    fn get_blit_params(&self) -> Result<(RectU, RectU), Error> {
+    pub(crate) fn get_blit_params(&self) -> Result<(RectU, RectU), Error> {
         match self.destination_rect {
             Some(destination_rect) => {
                 // Blit either a chunk of the source buffer, or all of it.
@@ -281,10 +281,8 @@ impl<S: AsRef<[P]> + AsMut<[P]>, P: Copy + Clone + Sized + Default + Zeroable + 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::png::PngWriter;
-    use bytemuck::cast_slice;
     #[cfg(feature = "png")]
-    use png::ColorType;
+    use crate::png::Png;
     #[cfg(feature = "png")]
     use std::env::current_dir;
     #[cfg(feature = "png")]
@@ -311,8 +309,11 @@ mod tests {
 
         src.blit(&mut dst).unwrap();
 
-        dst.write_png(current_dir().unwrap().join("test_output/blit.png"))
-            .unwrap();
+        Rgb8Surface::write_png(
+            &dst,
+            current_dir().unwrap().join("test_output").join("blit.png"),
+        )
+        .unwrap();
     }
 
     #[cfg(feature = "png")]
@@ -398,7 +399,7 @@ mod tests {
 
         src.blit(&mut dst).unwrap();
 
-        dst.write_png(current_dir().unwrap().join("test_output").join(name))
+        Rgb8Surface::write_png(&dst, current_dir().unwrap().join("test_output").join(name))
             .unwrap();
     }
 
@@ -409,7 +410,8 @@ mod tests {
         const SIZE: USizeVec2 = USizeVec2::new(D, D);
 
         let mut dst = Rgb8Surface::new_filled(SIZE, [255, 255, 255]);
-        let mut src = read_png(include_bytes!("../test_images/text.png"));
+        let mut src =
+            Rgb8Surface::read_png(Cursor::new(include_bytes!("../test_images/text.png"))).unwrap();
         src.set_position(I64Vec2::new(12, 13), &dst).unwrap();
         src.set_area(Some(RectI {
             position: I64Vec2::new(20, 3),
@@ -417,23 +419,13 @@ mod tests {
         }))
         .unwrap();
         src.blit(&mut dst).unwrap();
-        dst.write_png(current_dir().unwrap().join("test_output/clipped_text.png"))
-            .unwrap();
-    }
-
-    #[cfg(feature = "png")]
-    fn read_png(bytes: &[u8]) -> Rgb8Surface<'_> {
-        let decoder = png::Decoder::new(Cursor::new(bytes));
-        let mut reader = decoder.read_info().unwrap();
-        let mut buf = vec![0; reader.output_buffer_size().unwrap()];
-        let info = reader.next_frame(&mut buf).unwrap();
-        assert_eq!(info.color_type, ColorType::Rgb);
-        Rgb8Surface {
-            size: USizeVec2::new(info.width as usize, info.height as usize),
-            buffer: cast_slice::<u8, [u8; 3]>(&buf[..info.buffer_size()]).to_vec(),
-            destination_rect: None,
-            blit_area: None,
-            _p: PhantomData::default(),
-        }
+        Rgb8Surface::write_png(
+            &dst,
+            current_dir()
+                .unwrap()
+                .join("test_output")
+                .join("clipped_text.png"),
+        )
+        .unwrap();
     }
 }

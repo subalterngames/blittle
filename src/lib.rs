@@ -10,7 +10,6 @@ mod rect;
 #[cfg(feature = "softbuffer")]
 pub mod sb;
 mod surface;
-mod surface_trait;
 
 pub use convert::PixelConverter;
 pub use error::Error;
@@ -19,4 +18,3 @@ pub use rect::*;
 #[cfg(feature = "softbuffer")]
 pub use softbuffer;
 pub use surface::*;
-pub use surface_trait::SurfaceTrait;

@@ -1,4 +1,5 @@
 use glam::USizeVec2;
+use png::ColorType;
 use thiserror::Error;
 
 use crate::rect::RectI;
@@ -34,4 +35,7 @@ pub enum Error {
     #[cfg(feature = "png")]
     #[error("Failed to write png pixel data: {0}")]
     PngPixels(png::EncodingError),
+    #[cfg(feature = "png")]
+    #[error("png has invalid color type: {:?}. Expected: {:?}", 1, 2)]
+    PngColorType(ColorType, ColorType),
 }
