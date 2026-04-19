@@ -1,5 +1,5 @@
 use crate::Surface;
-use crate::sb::{Zrgb, ZrgbSurfaceRef};
+use crate::sb::{SoftbufferSurface, Zrgb};
 use crate::{L8Surface, L32Surface, Rgb8Surface};
 use bytemuck::{Pod, Zeroable};
 use glam::Vec4;
@@ -18,7 +18,7 @@ macro_rules! impl_from_zrgb {
     };
 }
 
-/// Convert from a [ZrgbSurfaceRef] to a surface.
+/// Convert from a [SoftbufferSurface] to a surface.
 pub trait FromZrgb<
     S: AsRef<[P]> + AsMut<[P]> + FromIterator<P>,
     P: Copy + Clone + Sized + Default + Zeroable + Pod,
@@ -26,7 +26,7 @@ pub trait FromZrgb<
 {
     fn zrgb_to_pixel(pixel: &Zrgb) -> P;
 
-    fn from_zrgb<'s>(surface: &ZrgbSurfaceRef) -> Surface<'s, S, P> {
+    fn from_zrgb<'s>(surface: &SoftbufferSurface) -> Surface<'s, S, P> {
         let buffer = surface
             .buffer
             .iter()

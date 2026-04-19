@@ -1,4 +1,4 @@
-use crate::sb::{Zrgb, ZrgbSurfaceRef};
+use crate::sb::{SoftbufferSurface, Zrgb};
 use crate::{Error, L32Surface, Surface};
 use bytemuck::{Pod, Zeroable};
 use glam::Vec4;
@@ -14,7 +14,7 @@ macro_rules! impl_to_zrgb {
     };
 }
 
-/// Blit a surface to a [ZrgbSurfaceRef] surface.
+/// Blit a surface to a [SoftbufferSurface] surface.
 pub trait ToZrgb<S: AsRef<[P]> + AsMut<[P]>, P: Copy + Clone + Sized + Default + Zeroable + Pod> {
     /// Convert a pixel to a [Zrgb] pixel.
     fn pixel_to_zrgb(pixel: P) -> Zrgb;
@@ -22,7 +22,7 @@ pub trait ToZrgb<S: AsRef<[P]> + AsMut<[P]>, P: Copy + Clone + Sized + Default +
     /// Blit this surface to `destination`.
     fn blit_to_zrgb_ref(
         surface: Surface<'_, S, P>,
-        destination: &mut ZrgbSurfaceRef,
+        destination: &mut SoftbufferSurface,
     ) -> Result<(), Error> {
         let (destination_rect, blit_area) = surface.get_blit_params()?;
         let dst_offset =

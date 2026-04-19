@@ -92,7 +92,10 @@ impl<S: AsRef<[P]> + AsMut<[P]>, P: Copy + Clone + Sized + Default + Zeroable + 
     ///
     /// Be sure to call [Self::position] or [Self::set_position]
     /// before blitting to a *new* `other` surface.
-    pub fn blit(&self, other: &mut Self) -> Result<(), Error> {
+    pub fn blit<B: AsRef<[P]> + AsMut<[P]>>(
+        &self,
+        other: &mut Surface<'_, B, P>,
+    ) -> Result<(), Error> {
         let (destination_rect, blit_area) = self.get_blit_params()?;
 
         // Iterate per-row.
