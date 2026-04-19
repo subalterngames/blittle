@@ -37,7 +37,6 @@ name = "mask"
 harness = false
 
 [features]
-default = ["png"]
 png = ["dep:png"]
 serde = ["dep:serde", "glam/serde"]
 softbuffer = ["dep:raw-window-handle", "dep:softbuffer"]

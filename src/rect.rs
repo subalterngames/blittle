@@ -39,6 +39,7 @@ macro_rules! overlaps {
     }};
 }
 
+/// A rectangle in which the `position` can have negative values.
 #[derive(Copy, Clone, Debug, Default)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct RectI {
@@ -102,6 +103,7 @@ impl Display for RectI {
     }
 }
 
+/// A rectangle defined by a position and size.
 #[derive(Copy, Clone, Debug, Default)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct RectU {

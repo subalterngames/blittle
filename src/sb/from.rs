@@ -8,9 +8,7 @@ use std::ops::Deref;
 
 macro_rules! impl_from_zrgb {
     ($p:ty, $f:expr) => {
-        impl<S: AsRef<[$p]> + AsMut<[$p]> + FromIterator<$p>> FromZrgb<S, $p>
-            for Surface<'_, S, $p>
-        {
+        impl FromZrgb<$p> for Surface<'_, Vec<$p>, $p> {
             fn zrgb_to_pixel(pixel: &Zrgb) -> $p {
                 $f(pixel)
             }
@@ -19,14 +17,12 @@ macro_rules! impl_from_zrgb {
 }
 
 /// Convert from a [SoftbufferSurface] to a surface.
-pub trait FromZrgb<
-    S: AsRef<[P]> + AsMut<[P]> + FromIterator<P>,
-    P: Copy + Clone + Sized + Default + Zeroable + Pod,
->
-{
+pub trait FromZrgb<P: Copy + Clone + Sized + Default + Zeroable + Pod> {
+    /// Convert a [Zrgb] pixel into my pixel type.
     fn zrgb_to_pixel(pixel: &Zrgb) -> P;
 
-    fn from_zrgb<'s>(surface: &SoftbufferSurface) -> Surface<'s, S, P> {
+    /// Convert a [SoftbufferSurface] to a surface of this type.
+    fn from_zrgb<'s>(surface: &SoftbufferSurface) -> Surface<'s, Vec<P>, P> {
         let buffer = surface
             .buffer
             .iter()

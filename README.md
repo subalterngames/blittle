@@ -2,6 +2,9 @@
 
 **`blittle` is a fast little blitter.**
 
+`blittle` blits *surfaces* onto each other. 
+A surface is a pixel buffer with some additional data such as its pixel type and dimensions.
+
 ```
 use blittle::*;
 use glam::{I64Vec2, USizeVec2};
@@ -25,38 +28,25 @@ The above example is *very* fast because there is no mask or blending involved.
 
 A mask is a certain color. Pixels in the source image that have the mask color aren't blitted to the destination image. If there was a mask, then `src.blit(dst)` would have to evaluate every pixel. But, because there isn't a mask, `blittle` can copy *each row* of `src` onto `dst` rather than each pixel.
 
-## No mask? No mask!
+If you *do* want to use a mask, you can use a `MaskedSurface`
 
-Most blit functions assume that you might want to apply a mask.
-A mask is typically a certain color.
+## Converting surfaces
 
-**`blittle` is fast because it doesn't apply a mask.**
-Since `blittle` doesn't have to check each pixel's color, it can copy per-row, rather than per-pixel.
+The `PixelConverter` trait can be used to convert one surface into another type of surface:
 
-## Clipping
+```
+use blittle::{PixelConverter, Rgb8Surface, Rgba8Surface};
+use glam::USizeVec2;
 
-By default, `blittle` won't check whether your source image exceeds the bounds of the
-destination image. This will cause your program to crash with a very opaque memory error.
-
-To trim the source image's blittable region, call [`clip`].
+let rgb = Rgb8Surface::new(USizeVec2::new(512, 512));
+let rgba = Rgba8Surface::from(&rgb);
+```
 
 ## Feature Flags
 
-### The `overlay` feature
-
-Add the `overlay` feature to include functions for overlaying a source image onto a destination with alpha (transparency) value(s).
-
-The overlaying functions are always slower than `blittle::blit`. `blittle::blit` copies lines of bytes, while overlaying involves per-pixel calculations.
-
-### The `rayon` feature
-
-Add the `rayon` feature to enable multithreaded blitting:
-
-`blit_multi_threaded` breaks the source and destination images into multiple chunks and then blits each chunk in parallel. The function signature is the same as that of [`blit`] except that there's an additional `num_threads` argument.
-
-### The `serde` feature
-
-Add the `serde` feature to make `PositionI`, `PositionU`, and `Size` serializable.
+- `png` adds the `Png` trait, which can be used to read and write .png files. See: `blittle::png`
+- `serde` allows all `glam` structs (e.g. `USizeVec2`), `blittle::RectU`, and `blittle::RectI` to be serializable.
+- `softbuffer` adds a new type of surface that can be created as a reference to a `softbuffer::Buffer`. See: `blittle::sb`
 
 ## Benchmarks
 

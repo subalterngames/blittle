@@ -18,9 +18,25 @@ macro_rules! impl_png {
     };
 }
 
+/// Read and write surfaces to/from .png files.
+///
+/// ```
+/// use std::fs::File;
+/// use std::io::BufReader;
+/// use blittle::*;
+/// use blittle::png::Png;
+///
+/// let surface = Rgba8Surface::read_png(BufReader::new(File::open("test_images/plasma.png").unwrap())).unwrap();
+/// Rgba8Surface::write_png(&surface, "test_output/plasma.png").unwrap();
+/// ```
 pub trait Png<S: AsRef<[P]> + AsMut<[P]>, P: Copy + Clone + Sized + Default + Zeroable + Pod> {
+    /// Returns the expected .png color type.
     fn get_png_color_type() -> ColorType;
 
+    /// Write to a .png file.
+    ///
+    /// Returns an error if a file at `path` can't be created
+    /// or if the buffer in `surface` is somehow invalid.
     fn write_png<Pa: AsRef<Path>>(surface: &Surface<'_, S, P>, path: Pa) -> Result<(), Error> {
         let file = File::create(path.as_ref())
             .map_err(|e| Error::PngFile(path.as_ref().to_path_buf(), e))?;
@@ -35,6 +51,10 @@ pub trait Png<S: AsRef<[P]> + AsMut<[P]>, P: Copy + Clone + Sized + Default + Ze
             .map_err(Error::PngPixels)
     }
 
+    /// Read from a .png file.
+    ///
+    /// Returns if `png` does not contain valid .png data,
+    /// or if its color type doesn't match [Self::get_png_color_type].
     fn read_png<'s, B: BufRead + Seek>(png: B) -> Result<Surface<'s, Vec<P>, P>, Error> {
         let decoder = Decoder::new(png);
         let mut reader = decoder.read_info().unwrap();

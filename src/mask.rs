@@ -48,7 +48,7 @@ impl<
         }
     }
 
-    /// Lock the surface, optimizing for blit speed while preventing pixel manipulation.
+    /// Lock the surface, optimizing blit speed while preventing pixel manipulation.
     pub fn lock(&mut self) {
         if self.is_locked() {
             return;

@@ -19,7 +19,7 @@ pub trait ToZrgb<S: AsRef<[P]> + AsMut<[P]>, P: Copy + Clone + Sized + Default +
     /// Convert a pixel to a [Zrgb] pixel.
     fn pixel_to_zrgb(pixel: P) -> Zrgb;
 
-    /// Blit this surface to `destination`.
+    /// Blit this surface to `destination` while converting pixels.
     fn blit_to_zrgb_ref(
         surface: Surface<'_, S, P>,
         destination: &mut SoftbufferSurface,
