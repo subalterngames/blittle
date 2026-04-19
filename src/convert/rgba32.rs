@@ -1,5 +1,5 @@
-use crate::convert::PixelConverter;
 use crate::Surface;
+use crate::convert::PixelConverter;
 use glam::{Vec4, Vec4Swizzles};
 use std::ops::Deref;
 

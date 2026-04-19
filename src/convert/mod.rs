@@ -98,3 +98,28 @@ impl_from_surface!(Vec4, f32, pixel_to_l32);
 impl_from_surface!(Vec4, [f32; 2], pixel_to_la32);
 impl_from_surface!(Vec4, [u8; 3], pixel_to_rgb8);
 impl_from_surface!(Vec4, [u8; 4], pixel_to_rgba8);
+
+#[cfg(feature = "png")]
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::png::Png;
+    use crate::{L8Surface, Rgba8Surface};
+    use std::env::current_dir;
+    use std::io::Cursor;
+
+    #[test]
+    fn test_convert() {
+        let src =
+            Rgba8Surface::read_png(Cursor::new(include_bytes!("../../test_images/plasma.png")))
+                .unwrap();
+        let dst = L8Surface::from(&src);
+        L8Surface::write_png(
+            &dst,
+            current_dir()
+                .unwrap()
+                .join("test_output/plasma_grayscale.png"),
+        )
+        .unwrap();
+    }
+}

@@ -35,8 +35,8 @@ pub trait Png<S: AsRef<[P]> + AsMut<[P]>, P: Copy + Clone + Sized + Default + Ze
             .map_err(Error::PngPixels)
     }
 
-    fn read_png<'s, B: BufRead + Seek>(bytes: B) -> Result<Surface<'s, Vec<P>, P>, Error> {
-        let decoder = Decoder::new(bytes);
+    fn read_png<'s, B: BufRead + Seek>(png: B) -> Result<Surface<'s, Vec<P>, P>, Error> {
+        let decoder = Decoder::new(png);
         let mut reader = decoder.read_info().unwrap();
         let mut buf = vec![0; reader.output_buffer_size().unwrap()];
         let info = reader.next_frame(&mut buf).unwrap();
