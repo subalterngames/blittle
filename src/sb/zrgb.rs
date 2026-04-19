@@ -1,6 +1,9 @@
 use bytemuck::{Pod, Zeroable};
 use std::ops::{Deref, DerefMut};
 
+/// A pixel color in a softbuffer Buffer.
+/// 
+/// The `Z` in this case refers to the one-byte padding at the start of the struct.
 #[derive(Copy, Clone, Debug, Eq, Ord, PartialOrd, PartialEq, Pod, Zeroable)]
 #[repr(C)]
 pub struct Zrgb {

@@ -102,7 +102,6 @@ impl_from_surface!(Vec4, [u8; 4], pixel_to_rgba8);
 #[cfg(feature = "png")]
 #[cfg(test)]
 mod tests {
-    use super::*;
     use crate::png::Png;
     use crate::{L8Surface, Rgba8Surface};
     use std::env::current_dir;
