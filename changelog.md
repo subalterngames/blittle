@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.5.0
+
+Big, sweeping changes.
+
+- `blittle` now uses *surfaces* that can blit to each other. This eliminates a lot of bugs involved in using raw byte buffers.
+A surface contains a pixel buffer of a given pixel type, a size, and some other underlying cached data.
+- `blittle` uses `I64Vec2` instead of `PositionI` and `USizeVec2` instead of `PositionU`.
+- The `overlay` functions are now gone. Now, there are comprehensive conversions to and from pixel types, but no option to overlay pixels.
+- Added a `MaskedSurface` that includes a blit mask color.
+- Added `Png` trait to read/write .png files.
+- Added a `softbuffer` feature that allows `blittle` to work with the `softbuffer` crate.
+- Updated benchmarks and tests.
+
 ## 0.4.4
 
 - Improved color conversion performance by 40-60%
