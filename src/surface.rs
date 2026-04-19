@@ -20,6 +20,37 @@ pub type La32Surface<'s> = Surface<'s, Vec<[f32; 2]>, [f32; 2]>;
 /// This uses glam for that sweet sweet SIMD, so you can't get the underlying bytes buffer.
 pub type Rgba32Surface<'s> = Surface<'s, Vec<Vec4>, Vec4>;
 
+/// A Surface is a pixel buffer, a size, and some underlying data describing how to blit it to a given destination Surface.
+///
+/// ## Type aliases
+///
+/// There are type aliases for surface of common buffer and pixel types. Consider using them!
+///
+/// ```
+/// use blittle::Rgba8Surface;
+/// use glam::USizeVec2;
+///
+/// let _ = Rgba8Surface::new(USizeVec2::new(512, 512));
+/// ```
+///
+/// Sometimes, you will need to use a buffer that isn't a vec or is an uncommon pixel type. In those cases, see below:
+///
+/// ## Generics
+///
+/// A Surface has a lifetime and two generics: `Surface<'s, S, P>`.
+///
+/// - The lifetime is only relevant if the buffer is a reference, e.g. `&mut [[u8; 3]]`
+/// - `S` is the type of underlying pixel buffer. This could be, for example, a vec, or a mutable slice.
+/// - `P` is the type of pixel. `S` must be a buffer with elements of type `P`.
+///
+/// So, `Rgba8Surface` is a type alias for: `Surface<'s, Vec<[u8; 4]>, [u8; 4]>`
+///
+/// ```
+/// use blittle::Surface;
+/// use glam::USizeVec2;
+///
+/// let _ = Surface::<'_, Vec<[u8; 4]>, [u8; 4]>::new(USizeVec2::new(512, 512));
+/// ```
 pub struct Surface<
     's,
     S: AsRef<[P]> + AsMut<[P]>,
@@ -90,14 +121,44 @@ impl<S: AsRef<[P]> + AsMut<[P]>, P: Copy + Clone + Sized + Default + Zeroable + 
 {
     /// Blit onto `other`.
     ///
-    /// Be sure to call [Self::position] or [Self::set_position]
-    /// before blitting to a *new* `other` surface.
+    /// There are three constraints for blitting to `other`.
+    ///
+    /// 1. `other` must have the same pixel type as `self`.
+    ///    For example, you can't blit an `Rgba8Surface` onto an `L8Surface`.
+    ///    However, `other` can have a different *buffer* type.
+    ///    For example, you can blit `Surface<'_, Vec<u8>, u8>` onto `Surface<'s, &'s mut[u8], u8>`
+    ///
+    /// 2. You must call [Self::set_position] before blitting.
+    ///    This is because [Self::set_position] not only sets the position,
+    ///    but also defines the region in which pixels in `src` actually overlap with `dst`.
+    ///    If you have called [Self::set_position] for one destination,
+    ///    and you are blitting to a *different* destination,
+    ///    you must call [Self::set_position] again.
+    ///
+    /// 3. Having called [Self::set_position], some pixels of `src` must overlap with `dst`.
+    ///
+    /// For example, this returns an error:
+    ///
+    /// ```
+    /// use blittle::*;
+    ///  use glam::{I64Vec2, USizeVec2};
+    ///
+    /// let mut src = Rgb8Surface::new(USizeVec2::new(512, 512));
+    /// let mut dst = Rgb8Surface::new(USizeVec2::new(1920, 1080));
+    /// // This works. Some, or all, of src is within dst.
+    /// src.set_position(I64Vec2::new(100, 100), &dst).unwrap();
+    /// src.blit(&mut dst).unwrap();
+    ///
+    /// // Set a new destination.
+    /// let mut dst = Rgb8Surface::new(USizeVec2::new(64, 64));
+    /// // The position of `src` is obsolete, and is out of bounds.
+    /// assert!(src.blit(&mut dst).is_err());
+    /// ```
     pub fn blit<B: AsRef<[P]> + AsMut<[P]>>(
         &self,
         other: &mut Surface<'_, B, P>,
     ) -> Result<(), Error> {
-        let (destination_rect, blit_area) = self.get_blit_params()?;
-
+        let (destination_rect, blit_area) = self.get_blit_params(other.size)?;
         // Iterate per-row.
         (0..blit_area.size.y).for_each(|src_y| {
             // Get the start index in the source slice.
@@ -123,13 +184,19 @@ impl<S: AsRef<[P]> + AsMut<[P]>, P: Copy + Clone + Sized + Default + Zeroable + 
 
     /// Set the top-left position of the surface, relative to the surface it will blit to `destination`.
     ///
-    /// This also sets the clipped blitting area within `destination`, which is the return value.
+    /// `destination` must be of the same pixel type and can be of a different buffer type.
+    /// For example, if `self` is of type `Surface<'_, Vec<[u8; 4]>, [u8; 4]>>`:
+    ///
+    /// - `self` can set its position relative to a `Surface<'s, &'s mut [u8], [u8; 4]>>`
+    /// - `self` *can't* set its position relative to a `Surface<'_, Vec<[u8; 3]>, [u8; 3]>>`
+    ///
+    /// This will also set the region of pixels of `self.buffer` that otherlap with `destination.buffer`.
     ///
     /// Returns an error if the clipped blitting area is not within `destination`.
-    pub const fn set_position(
+    pub const fn set_position<B: AsRef<[P]> + AsMut<[P]>>(
         &mut self,
         position: I64Vec2,
-        destination: &Self,
+        destination: &Surface<'_, B, P>,
     ) -> Result<RectU, Error> {
         let rect = RectI {
             position,
@@ -145,6 +212,8 @@ impl<S: AsRef<[P]> + AsMut<[P]>, P: Copy + Clone + Sized + Default + Zeroable + 
         }
     }
 
+    /// Returns the top-left position of `self` relative to a destination surface,
+    /// or None if [Self::set_position] hasn't been called.
     pub const fn get_position(&self) -> Option<USizeVec2> {
         match self.destination_rect {
             Some(rect) => Some(rect.position),
@@ -154,7 +223,29 @@ impl<S: AsRef<[P]> + AsMut<[P]>, P: Copy + Clone + Sized + Default + Zeroable + 
 
     /// Set an `area` within the pixel buffer to blit.
     ///
+    /// You must call [Self::set_position] before calling this.
+    ///
     /// If `area` is None, then the entirety of this surface will blit (this is the default behavior).
+    ///
+    /// If `area` is out of bounds of `self`'s underlying buffer, this will return an error.
+    /// Otherwise, this returns a [RectU] describing the clipped area
+    /// (i.e. which pixels within the area overlap with `dst`).
+    ///
+    /// ```
+    /// use blittle::*;
+    /// use glam::{I64Vec2, USizeVec2};
+    ///
+    /// let mut src = Rgb8Surface::new(USizeVec2::new(512, 512));
+    /// let dst = Rgb8Surface::new(USizeVec2::new(1920, 1080));
+    /// // Set the position.
+    /// src.set_position(I64Vec2::new(0, 0), &dst).unwrap();
+    /// // Blit only the pixels in this region.
+    /// src.set_area(Some(RectI { position: I64Vec2::new(1, 3), size: USizeVec2::new(60, 80)})).unwrap();
+    /// // Reset the area. Now, all pixels will blit.
+    /// src.set_area(None).unwrap();
+    /// // Invalid area.
+    /// assert!(src.set_area(Some(RectI { position: I64Vec2::new(-2000, -2000), size: USizeVec2::new(60, 80)})).is_err());
+    /// ```
     pub const fn set_area(&mut self, area: Option<RectI>) -> Result<Option<RectU>, Error> {
         match self.destination_rect {
             Some(destination_rect) => match area {
@@ -184,46 +275,82 @@ impl<S: AsRef<[P]> + AsMut<[P]>, P: Copy + Clone + Sized + Default + Zeroable + 
         self.buffer.as_mut().chunks_exact_mut(self.size.x)
     }
 
-    /// Returns the color of the pixel at (x, y).
+    /// Returns the color of the pixel at `position`.
     ///
-    /// Returns an error if (x, y) is out of bounds.
-    pub fn get_pixel_checked(&self, x: usize, y: usize) -> Result<P, Error> {
-        if x < self.size.x && y < self.size.y {
-            Ok(self.get_pixel_unchecked(x, y))
+    /// Returns an error if `position` is out of bounds.
+    ///
+    /// ```
+    /// use blittle::*;
+    /// use glam::USizeVec2;
+    ///
+    /// let src = Rgb8Surface::new(USizeVec2::new(64, 64));
+    /// // Get the pixel at this position.
+    /// let _ = src.get_pixel_checked(USizeVec2::new(3, 15));
+    /// // This position is out of bounds.
+    /// assert!(src.get_pixel_checked(USizeVec2::new(102, 15)).is_err());
+    /// ```
+    pub fn get_pixel_checked(&self, position: USizeVec2) -> Result<P, Error> {
+        if position.x < self.size.x && position.y < self.size.y {
+            Ok(self.get_pixel_unchecked(position))
         } else {
             Err(Error::PixelPosition {
-                x,
-                y,
+                position,
                 size: self.size,
             })
         }
     }
 
-    /// Returns the color of the pixel at (x, y).
-    pub fn get_pixel_unchecked(&self, x: usize, y: usize) -> P {
-        let index = self.get_index(x, y);
+    /// Returns the color of the pixel at `position`.
+    ///
+    /// ```
+    /// use blittle::*;
+    /// use glam::USizeVec2;
+    ///
+    /// let src = Rgb8Surface::new(USizeVec2::new(64, 64));
+    /// let _ = src.get_pixel_unchecked(USizeVec2::new(3, 15));
+    /// ```
+    pub fn get_pixel_unchecked(&self, position: USizeVec2) -> P {
+        let index = self.get_index(position.x, position.y);
         self.buffer.as_ref()[index]
     }
 
-    /// Set the color of the pixel at (x, y).
+    /// Set the color of the pixel at `position`.
     ///
-    /// Returns an error if (x, y) is out of bounds.
-    pub fn set_pixel_checked(&mut self, x: usize, y: usize, color: P) -> Result<(), Error> {
-        if x < self.size.x && y < self.size.y {
-            self.set_pixel_unchecked(x, y, color);
+    /// Returns an error if `position` is out of bounds.
+    ///
+    /// ```
+    /// use blittle::*;
+    /// use glam::USizeVec2;
+    ///
+    /// let mut src = Rgb8Surface::new(USizeVec2::new(64, 64));
+    /// // Set the pixel at this position.
+    /// src.set_pixel_checked(USizeVec2::new(3, 15), [50, 0, 220]).unwrap();
+    /// // This pixel is out of bounds.
+    /// assert!(src.set_pixel_checked(USizeVec2::new(120, 15), [50, 0, 220]).is_err());
+    /// ```
+    pub fn set_pixel_checked(&mut self, position: USizeVec2, color: P) -> Result<(), Error> {
+        if position.x < self.size.x && position.y < self.size.y {
+            self.set_pixel_unchecked(position, color);
             Ok(())
         } else {
             Err(Error::PixelPosition {
-                x,
-                y,
+                position,
                 size: self.size,
             })
         }
     }
 
-    /// Set the color of the pixel at (x, y).
-    pub fn set_pixel_unchecked(&mut self, x: usize, y: usize, color: P) {
-        let index = self.get_index(x, y);
+    /// Set the color of the pixel at `position`.
+    ///
+    /// ```
+    /// use blittle::*;
+    /// use glam::USizeVec2;
+    ///
+    /// let mut src = Rgb8Surface::new(USizeVec2::new(64, 64));
+    /// src.set_pixel_unchecked(USizeVec2::new(3, 15), [50, 0, 220]);
+    /// ```
+    pub fn set_pixel_unchecked(&mut self, position: USizeVec2, color: P) {
+        let index = self.get_index(position.x, position.y);
         self.buffer.as_mut()[index] = color;
     }
 
@@ -240,41 +367,50 @@ impl<S: AsRef<[P]> + AsMut<[P]>, P: Copy + Clone + Sized + Default + Zeroable + 
         self.destination_rect = None;
     }
 
-    pub fn get_size(&self) -> USizeVec2 {
+    /// Returns the size of the surface.
+    pub const fn get_size(&self) -> USizeVec2 {
         self.size
     }
 
-    /// The underlying pixel buffer.
+    /// Returns the underlying pixel buffer.
     pub fn buffer(&self) -> &[P] {
         self.buffer.as_ref()
     }
 
+    /// Returns the underlying mutable pixel buffer.
     pub fn buffer_mut(&mut self) -> &mut [P] {
         self.buffer.as_mut()
     }
 
-    /// The underlying mutable buffer as bytes.
+    /// Returns the underlying mutable buffer as bytes.
     pub fn bytes(&self) -> &[u8] {
         cast_slice::<P, u8>(self.buffer())
     }
 
-    /// The underlying mutable buffer as bytes.
+    /// Returns the underlying mutable buffer as bytes.
     pub fn bytes_mut(&mut self) -> &mut [u8] {
         cast_slice_mut::<P, u8>(self.buffer_mut())
     }
 
-    pub(crate) fn get_blit_params(&self) -> Result<(RectU, RectU), Error> {
+    pub(crate) fn get_blit_params(
+        &self,
+        destination_size: USizeVec2,
+    ) -> Result<(RectU, RectU), Error> {
         match self.destination_rect {
             Some(destination_rect) => {
-                // Blit either a chunk of the source buffer, or all of it.
-                let blit_area = match self.blit_area {
-                    Some(rect) => rect,
-                    None => RectU {
-                        position: USizeVec2::ZERO,
-                        size: destination_rect.size,
-                    },
-                };
-                Ok((destination_rect, blit_area))
+                if destination_rect.overlaps(&RectU::from_size(destination_size)) {
+                    // Blit either a chunk of the source buffer, or all of it.
+                    let blit_area = match self.blit_area {
+                        Some(rect) => rect,
+                        None => RectU {
+                            position: USizeVec2::ZERO,
+                            size: destination_rect.size,
+                        },
+                    };
+                    Ok((destination_rect, blit_area))
+                } else {
+                    Err(Error::NoOverlap)
+                }
             }
             None => Err(Error::NoDestinationRect),
         }

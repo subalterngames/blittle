@@ -14,14 +14,19 @@ pub enum Error {
     InvalidSize { size: USizeVec2, len: usize },
     #[error("The destination hasn't been set.")]
     NoDestinationRect,
+    #[error("Source surface doesn't overlap with destination surface.")]
+    NoOverlap,
     #[error("Tried to set the area before setting the position relative to the destination.")]
     AreaBeforePosition,
     #[error("Failed to set destination rect. From: {0} To: {1}")]
     InvalidDestinationRect(RectI, RectI),
     #[error("Invalid blit area: {0}")]
     InvalidArea(RectI),
-    #[error("Pixel ({x}, {y}) out of bounds of this surface of size: {size}")]
-    PixelPosition { x: usize, y: usize, size: USizeVec2 },
+    #[error("Pixel {position} out of bounds of this surface of size: {size}")]
+    PixelPosition {
+        position: USizeVec2,
+        size: USizeVec2,
+    },
     #[error("Invalid mask size. Expected: {expected} Got: {actual}")]
     MaskSize { actual: usize, expected: usize },
     #[error("Surface is currently locked.")]

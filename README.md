@@ -4,36 +4,31 @@
 
 ```
 use blittle::*;
+use glam::{I64Vec2, USizeVec2};
 
-/// Red, green, blue. One byte per channel.
-let pixel_type = PixelType::Rgb8;
-
-// The dimensions and byte data of the source image.
-let src_w = 32;
-let src_h = 17;
-// A raw image bitmap.re
-let src = vec![0u8; src_w * src_h * pixel_type.stride()];
-let src_size = Size { w: src_w, h: src_h };
-
-// The dimensions and byte data of the destination image.
-let dst_w = 64;
-let dst_h = 64;
-// Another raw image bitmap.
-let mut dst = vec![0u8; dst_w * dst_h * pixel_type.stride()];
-// The top-left position of where `src` will appear on `dst`.
-let dst_position = PositionI { x: 2, y: 12 };
-let dst_size = Size { w: dst_w, h: dst_h };
-let rect = ClippedRect::new(dst_position, dst_size, src_size).unwrap();
-
-// Blit `src` onto `dst`.
-blit(&src, &mut dst, &rect, &pixel_type);
+// The size of the source image.
+let size = USizeVec2::new(512, 512);
+// Create a new surface. 
+// This surface has three channels (r, g, b) and 1 byte per channel.
+let mut src = Rgb8Surface::new(size);
+// Fill the surface.
+src.fill([255, 0, 255]);
+// Create a destination surface.
+let mut dst = Rgb8Surface::new_filled(USizeVec2::new(1920, 1080), [100, 100, 50]);
+// Set the position of src relative to dst.
+src.set_position(I64Vec2::new(-50, 100), &dst).unwrap();
+// Blit src onto dst.
+src.blit(&mut dst).unwrap();
 ```
+
+The above example is *very* fast because there is no mask or blending involved.
+
+A mask is a certain color. Pixels in the source image that have the mask color aren't blitted to the destination image. If there was a mask, then `src.blit(dst)` would have to evaluate every pixel. But, because there isn't a mask, `blittle` can copy *each row* of `src` onto `dst` rather than each pixel.
 
 ## No mask? No mask!
 
 Most blit functions assume that you might want to apply a mask.
 A mask is typically a certain color.
-Pixels in the source image that have the mask color aren't blitted to the destination image.
 
 **`blittle` is fast because it doesn't apply a mask.**
 Since `blittle` doesn't have to check each pixel's color, it can copy per-row, rather than per-pixel.

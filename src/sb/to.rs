@@ -24,7 +24,7 @@ pub trait ToZrgb<S: AsRef<[P]> + AsMut<[P]>, P: Copy + Clone + Sized + Default +
         surface: Surface<'_, S, P>,
         destination: &mut SoftbufferSurface,
     ) -> Result<(), Error> {
-        let (destination_rect, blit_area) = surface.get_blit_params()?;
+        let (destination_rect, blit_area) = surface.get_blit_params(destination.size)?;
         let dst_offset =
             destination.get_index(destination_rect.position.x, destination_rect.position.y);
         let len = blit_area.size.x * blit_area.size.y;

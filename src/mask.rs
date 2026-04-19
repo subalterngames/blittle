@@ -122,8 +122,11 @@ impl<
     /// Blit onto `other`, using a mask.
     ///
     /// This can be called if this masked surface is unlocked, but it'll be slower.
-    pub fn blit(&self, other: &mut Surface<'s, S, P>) -> Result<(), Error> {
-        let (destination_rect, blit_area) = self.surface.get_blit_params()?;
+    pub fn blit<B: AsRef<[P]> + AsMut<[P]>>(
+        &self,
+        other: &mut Surface<'s, B, P>,
+    ) -> Result<(), Error> {
+        let (destination_rect, blit_area) = self.surface.get_blit_params(other.size)?;
         let dst_offset = other.get_index(destination_rect.position.x, destination_rect.position.y);
         match self.mask.as_ref() {
             Some(mask) => {
