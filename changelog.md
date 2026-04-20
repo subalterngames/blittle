@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.5.1
+
+Fixed the implausibly-fast converter benchmarks.
+
 ## 0.5.0
 
 Big, sweeping changes.
