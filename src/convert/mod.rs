@@ -1,5 +1,4 @@
 use crate::Surface;
-use glam::Vec4;
 use std::marker::PhantomData;
 
 mod l32;
@@ -24,7 +23,7 @@ pub trait PixelConverter<P: Copy + Clone + Sized + Default> {
 
     fn pixel_to_rgba8(pixel: &P) -> [u8; 4];
 
-    fn pixel_to_rgba32(pixel: &P) -> Vec4;
+    fn pixel_to_rgba32(pixel: &P) -> [f32; 4];
 }
 
 macro_rules! impl_from_surface {
@@ -55,49 +54,49 @@ impl_from_surface!(u8, f32, pixel_to_l32);
 impl_from_surface!(u8, [f32; 2], pixel_to_la32);
 impl_from_surface!(u8, [u8; 3], pixel_to_rgb8);
 impl_from_surface!(u8, [u8; 4], pixel_to_rgba8);
-impl_from_surface!(u8, Vec4, pixel_to_rgba32);
+impl_from_surface!(u8, [f32; 4], pixel_to_rgba32);
 
 impl_from_surface!([u8; 2], u8, pixel_to_l8);
 impl_from_surface!([u8; 2], f32, pixel_to_l32);
 impl_from_surface!([u8; 2], [f32; 2], pixel_to_la32);
 impl_from_surface!([u8; 2], [u8; 3], pixel_to_rgb8);
 impl_from_surface!([u8; 2], [u8; 4], pixel_to_rgba8);
-impl_from_surface!([u8; 2], Vec4, pixel_to_rgba32);
+impl_from_surface!([u8; 2], [f32; 4], pixel_to_rgba32);
 
 impl_from_surface!(f32, u8, pixel_to_l8);
 impl_from_surface!(f32, [u8; 2], pixel_to_la8);
 impl_from_surface!(f32, [f32; 2], pixel_to_la32);
 impl_from_surface!(f32, [u8; 3], pixel_to_rgb8);
 impl_from_surface!(f32, [u8; 4], pixel_to_rgba8);
-impl_from_surface!(f32, Vec4, pixel_to_rgba32);
+impl_from_surface!(f32, [f32; 4], pixel_to_rgba32);
 
 impl_from_surface!([f32; 2], u8, pixel_to_l8);
 impl_from_surface!([f32; 2], [u8; 2], pixel_to_la8);
 impl_from_surface!([f32; 2], f32, pixel_to_l32);
 impl_from_surface!([f32; 2], [u8; 3], pixel_to_rgb8);
 impl_from_surface!([f32; 2], [u8; 4], pixel_to_rgba8);
-impl_from_surface!([f32; 2], Vec4, pixel_to_rgba32);
+impl_from_surface!([f32; 2], [f32; 4], pixel_to_rgba32);
 
 impl_from_surface!([u8; 3], u8, pixel_to_l8);
 impl_from_surface!([u8; 3], [u8; 2], pixel_to_la8);
 impl_from_surface!([u8; 3], f32, pixel_to_l32);
 impl_from_surface!([u8; 3], [f32; 2], pixel_to_la32);
 impl_from_surface!([u8; 3], [u8; 4], pixel_to_rgba8);
-impl_from_surface!([u8; 3], Vec4, pixel_to_rgba32);
+impl_from_surface!([u8; 3], [f32; 4], pixel_to_rgba32);
 
 impl_from_surface!([u8; 4], u8, pixel_to_l8);
 impl_from_surface!([u8; 4], [u8; 2], pixel_to_la8);
 impl_from_surface!([u8; 4], f32, pixel_to_l32);
 impl_from_surface!([u8; 4], [f32; 2], pixel_to_la32);
 impl_from_surface!([u8; 4], [u8; 3], pixel_to_rgb8);
-impl_from_surface!([u8; 4], Vec4, pixel_to_rgba32);
+impl_from_surface!([u8; 4], [f32; 4], pixel_to_rgba32);
 
-impl_from_surface!(Vec4, u8, pixel_to_l8);
-impl_from_surface!(Vec4, [u8; 2], pixel_to_la8);
-impl_from_surface!(Vec4, f32, pixel_to_l32);
-impl_from_surface!(Vec4, [f32; 2], pixel_to_la32);
-impl_from_surface!(Vec4, [u8; 3], pixel_to_rgb8);
-impl_from_surface!(Vec4, [u8; 4], pixel_to_rgba8);
+impl_from_surface!([f32; 4], u8, pixel_to_l8);
+impl_from_surface!([f32; 4], [u8; 2], pixel_to_la8);
+impl_from_surface!([f32; 4], f32, pixel_to_l32);
+impl_from_surface!([f32; 4], [f32; 2], pixel_to_la32);
+impl_from_surface!([f32; 4], [u8; 3], pixel_to_rgb8);
+impl_from_surface!([f32; 4], [u8; 4], pixel_to_rgba8);
 
 #[cfg(feature = "png")]
 #[cfg(test)]

@@ -2,7 +2,6 @@ use crate::error::Error;
 use crate::rect::{RectI, RectU};
 use crate::{PositionI, PositionU, Size};
 use bytemuck::{Pod, Zeroable, cast_slice, cast_slice_mut};
-use glam::Vec4;
 use std::marker::PhantomData;
 
 /// Grayscale.
@@ -17,9 +16,9 @@ pub type Rgba8Surface<'s> = Surface<'s, Vec<[u8; 4]>, [u8; 4]>;
 pub type L32Surface<'s> = Surface<'s, Vec<f32>, f32>;
 /// 32-bit grayscale + alpha.
 pub type La32Surface<'s> = Surface<'s, Vec<[f32; 2]>, [f32; 2]>;
-/// Red, green, blue, alpha as Vec4s.
+/// Red, green, blue, alpha as [f32; 4]s.
 /// This uses glam for that sweet sweet SIMD, so you can't get the underlying bytes buffer.
-pub type Rgba32Surface<'s> = Surface<'s, Vec<Vec4>, Vec4>;
+pub type Rgba32Surface<'s> = Surface<'s, Vec<[f32; 4]>, [f32; 4]>;
 
 /// A Surface is a pixel buffer, a size, and some underlying data describing how to blit it to a given destination Surface.
 ///
@@ -140,16 +139,15 @@ impl<S: AsRef<[P]> + AsMut<[P]>, P: Copy + Clone + Sized + Default + Zeroable + 
     ///
     /// ```
     /// use blittle::*;
-    ///  use glam::{PositionI, USizeVec2};
     ///
-    /// let mut src = Rgb8Surface::new(USizeVec2::new(512, 512));
-    /// let mut dst = Rgb8Surface::new(USizeVec2::new(1920, 1080));
+    /// let mut src = Rgb8Surface::new(Size::new(512, 512));
+    /// let mut dst = Rgb8Surface::new(Size::new(1920, 1080));
     /// // This works. Some, or all, of src is within dst.
     /// src.set_position(PositionI::new(100, 100), &dst).unwrap();
     /// src.blit(&mut dst).unwrap();
     ///
     /// // Set a new destination.
-    /// let mut dst = Rgb8Surface::new(USizeVec2::new(64, 64));
+    /// let mut dst = Rgb8Surface::new(Size::new(64, 64));
     /// // The position of `src` is obsolete, and is out of bounds.
     /// assert!(src.blit(&mut dst).is_err());
     /// ```

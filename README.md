@@ -7,19 +7,18 @@ A surface is a pixel buffer with some additional data such as its pixel type and
 
 ```
 use blittle::*;
-use glam::{I64Vec2, USizeVec2};
 
 // The size of the source image.
-let size = USizeVec2::new(512, 512);
+let size = Size::new(512, 512);
 // Create a new surface. 
 // This surface has three channels (r, g, b) and 1 byte per channel.
 let mut src = Rgb8Surface::new(size);
 // Fill the surface.
 src.fill([255, 0, 255]);
 // Create a destination surface.
-let mut dst = Rgb8Surface::new_filled(USizeVec2::new(1920, 1080), [100, 100, 50]);
+let mut dst = Rgb8Surface::new_filled(Size::new(1920, 1080), [100, 100, 50]);
 // Set the position of src relative to dst.
-src.set_position(I64Vec2::new(-50, 100), &dst).unwrap();
+src.set_position(PositionI::new(-50, 100), &dst).unwrap();
 // Blit src onto dst.
 src.blit(&mut dst).unwrap();
 ```
@@ -35,17 +34,16 @@ If you *do* want to use a mask, you can use a `MaskedSurface`
 The `PixelConverter` trait can be used to convert one surface into another type of surface:
 
 ```
-use blittle::{PixelConverter, Rgb8Surface, Rgba8Surface};
-use glam::USizeVec2;
+use blittle::{PixelConverter, Rgb8Surface, Rgba8Surface, Size};
 
-let rgb = Rgb8Surface::new(USizeVec2::new(512, 512));
+let rgb = Rgb8Surface::new(Size::new(512, 512));
 let rgba = Rgba8Surface::from(&rgb);
 ```
 
 ## Feature Flags
 
 - `png` adds the `Png` trait, which can be used to read and write .png files. See: `blittle::png`
-- `serde` allows all `glam` structs (e.g. `USizeVec2`), `blittle::RectU`, and `blittle::RectI` to be serializable.
+- `serde` allows some structs such as `blittle::RectU` and `blittle::RectI` to be serializable.
 - `softbuffer` adds a new type of surface that can be created as a reference to a `softbuffer::Buffer`. See: `blittle::sb`
 
 ## Benchmarks

@@ -2,7 +2,6 @@ use crate::Surface;
 use crate::sb::{SoftbufferSurface, Zrgb};
 use crate::{L8Surface, L32Surface, Rgb8Surface};
 use bytemuck::{Pod, Zeroable};
-use glam::Vec4;
 use std::marker::PhantomData;
 use std::ops::Deref;
 
@@ -50,14 +49,13 @@ impl_from_zrgb!([u8; 4], |p: &Zrgb| {
     let p = p.deref();
     [p[1], p[2], p[3], 255]
 });
-impl_from_zrgb!(Vec4, |p: &Zrgb| {
-    let p = p.deref();
-    Vec4::new(
+impl_from_zrgb!([f32; 4], |p: &Zrgb| {
+    [
         L8Surface::u8_to_f32(p[1]),
         L8Surface::u8_to_f32(p[2]),
         L8Surface::u8_to_f32(p[3]),
         1.,
-    )
+    ]
 });
 
 #[inline]

@@ -86,7 +86,6 @@ dependencies = [
  "blit",
  "bytemuck",
  "criterion",
- "glam",
  "png 0.18.1",
  "raw-window-handle",
  "sdl2",
@@ -439,16 +438,6 @@ checksum = "4ae047235e33e2829703574b54fdec96bfbad892062d97fed2f76022287de61b"
 dependencies = [
  "color_quant",
  "weezl",
-]
-
-[[package]]
-name = "glam"
-version = "0.32.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f70749695b063ecbf6b62949ccccde2e733ec3ecbbd71d467dca4e5c6c97cca0"
-dependencies = [
- "bytemuck",
- "serde_core",
 ]
 
 [[package]]

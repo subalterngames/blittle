@@ -1,8 +1,6 @@
 use crate::sb::{SoftbufferSurface, Zrgb};
 use crate::{Error, L32Surface, Surface};
 use bytemuck::{Pod, Zeroable};
-use glam::Vec4;
-use std::ops::Deref;
 
 macro_rules! impl_to_zrgb {
     ($p:ty, $f:expr) => {
@@ -53,8 +51,9 @@ impl_to_zrgb!([f32; 2], |p: [f32; 2]| {
 });
 impl_to_zrgb!([u8; 3], |p: [u8; 3]| Zrgb::new(p[0], p[1], p[2]));
 impl_to_zrgb!([u8; 4], |p: [u8; 4]| Zrgb::new(p[0], p[1], p[2]));
-impl_to_zrgb!(Vec4, |p: Vec4| {
-    let p = p * 256.;
-    let p = p.deref();
-    Zrgb::new(p.x as u8, p.y as u8, p.z as u8)
+impl_to_zrgb!([f32; 4], |p: [f32; 4]| {
+      let r = (p[0] * 265.) as u8;
+        let g = (p[1] * 265.) as u8;
+        let b = (p[2] * 265.) as u8;
+    Zrgb::new(r, g, b)
 });

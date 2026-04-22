@@ -89,8 +89,8 @@ impl RectI {
     pub const fn into_rectu(self) -> RectU {
         RectU {
             position: PositionU {
-                x: self.position.x.cast_unsigned() as usize,
-                y: self.position.y.cast_unsigned() as usize,
+                x: self.position.x.cast_unsigned(),
+                y: self.position.y.cast_unsigned(),
             },
             size: self.size,
         }

@@ -1,4 +1,3 @@
-use glam::USizeVec2;
 #[cfg(feature = "png")]
 use png::ColorType;
 use thiserror::Error;

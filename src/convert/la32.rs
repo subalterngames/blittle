@@ -1,6 +1,5 @@
 use crate::convert::PixelConverter;
 use crate::{L32Surface, Surface};
-use glam::Vec4;
 
 impl<S: AsRef<[[f32; 2]]> + AsMut<[[f32; 2]]>> PixelConverter<[f32; 2]>
     for Surface<'_, S, [f32; 2]>
@@ -33,8 +32,8 @@ impl<S: AsRef<[[f32; 2]]> + AsMut<[[f32; 2]]>> PixelConverter<[f32; 2]>
         [p, p, p, L32Surface::f32_to_u8(pixel[1])]
     }
 
-    fn pixel_to_rgba32(pixel: &[f32; 2]) -> Vec4 {
+    fn pixel_to_rgba32(pixel: &[f32; 2]) -> [f32; 4] {
         let p = pixel[0];
-        Vec4::new(p, p, p, pixel[1])
+        [p, p, p, pixel[1]]
     }
 }
