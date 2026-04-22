@@ -58,13 +58,13 @@ impl_from_zrgb!([f32; 4], |p: &Zrgb| {
     ]
 });
 
-#[inline]
+#[inline(always)]
 fn zrgb_to_f32(pixel: &Zrgb) -> f32 {
     let p = pixel.deref();
     Rgb8Surface::grayscale(p[1], p[2], p[3])
 }
 
-#[inline]
+#[inline(always)]
 fn zrgb_to_u8(pixel: &Zrgb) -> u8 {
     L32Surface::f32_to_u8(zrgb_to_f32(pixel))
 }

@@ -29,7 +29,7 @@ impl<S: AsRef<[f32]> + AsMut<[f32]>> PixelConverter<f32> for Surface<'_, S, f32>
 
     fn pixel_to_rgba32(pixel: &f32) -> [f32; 4] {
         let p = *pixel;
-       [p, p, p, 1.]
+        [p, p, p, 1.]
     }
 }
 

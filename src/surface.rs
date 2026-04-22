@@ -1,7 +1,6 @@
 use crate::error::Error;
 use crate::rect::{RectI, RectU};
 use crate::{PositionI, PositionU, Size};
-use bytemuck::{Pod, Zeroable, cast_slice, cast_slice_mut};
 use std::marker::PhantomData;
 
 /// Grayscale.
@@ -48,11 +47,7 @@ pub type Rgba32Surface<'s> = Surface<'s, Vec<[f32; 4]>, [f32; 4]>;
 ///
 /// let _ = Surface::<'_, Vec<[u8; 4]>, [u8; 4]>::new(Size::new(512, 512));
 /// ```
-pub struct Surface<
-    's,
-    S: AsRef<[P]> + AsMut<[P]>,
-    P: Copy + Clone + Sized + Default + Zeroable + Pod,
-> {
+pub struct Surface<'s, S: AsRef<[P]> + AsMut<[P]>, P: Copy + Clone + Sized + Default> {
     pub(crate) size: Size,
     pub(crate) buffer: S,
     pub(crate) destination_rect: Option<RectU>,
@@ -60,7 +55,7 @@ pub struct Surface<
     pub(crate) _p: PhantomData<&'s P>,
 }
 
-impl<P: Copy + Clone + Sized + Default + Zeroable + Pod> Surface<'_, Vec<P>, P> {
+impl<P: Copy + Clone + Sized + Default> Surface<'_, Vec<P>, P> {
     /// Get a new surface.
     ///
     /// The position defaults to `(0, 0)`.
@@ -90,7 +85,7 @@ impl<P: Copy + Clone + Sized + Default + Zeroable + Pod> Surface<'_, Vec<P>, P> 
     }
 }
 
-impl<'s, P: Copy + Clone + Sized + Default + Zeroable + Pod> Surface<'s, &'s mut [P], P> {
+impl<'s, P: Copy + Clone + Sized + Default> Surface<'s, &'s mut [P], P> {
     /// Get a new surface from a mutable slice.
     ///
     /// The position defaults to `(0, 0)`.
@@ -113,9 +108,7 @@ impl<'s, P: Copy + Clone + Sized + Default + Zeroable + Pod> Surface<'s, &'s mut
     }
 }
 
-impl<S: AsRef<[P]> + AsMut<[P]>, P: Copy + Clone + Sized + Default + Zeroable + Pod>
-    Surface<'_, S, P>
-{
+impl<S: AsRef<[P]> + AsMut<[P]>, P: Copy + Clone + Sized + Default> Surface<'_, S, P> {
     /// Blit onto `other`.
     ///
     /// There are three constraints for blitting to `other`.
@@ -374,16 +367,6 @@ impl<S: AsRef<[P]> + AsMut<[P]>, P: Copy + Clone + Sized + Default + Zeroable + 
         self.buffer.as_mut()
     }
 
-    /// Returns the underlying mutable buffer as bytes.
-    pub fn bytes(&self) -> &[u8] {
-        cast_slice::<P, u8>(self.buffer())
-    }
-
-    /// Returns the underlying mutable buffer as bytes.
-    pub fn bytes_mut(&mut self) -> &mut [u8] {
-        cast_slice_mut::<P, u8>(self.buffer_mut())
-    }
-
     pub(crate) fn get_blit_params(&self, destination_size: Size) -> Result<(RectU, RectU), Error> {
         match self.destination_rect {
             Some(destination_rect) => {
@@ -403,6 +386,23 @@ impl<S: AsRef<[P]> + AsMut<[P]>, P: Copy + Clone + Sized + Default + Zeroable + 
             }
             None => Err(Error::NoDestinationRect),
         }
+    }
+}
+
+#[cfg(feature = "bytes")]
+impl<
+    S: AsRef<[P]> + AsMut<[P]>,
+    P: Copy + Clone + Sized + Default + bytemuck::Zeroable + bytemuck::Pod,
+> Surface<'_, S, P>
+{
+    /// Returns the underlying mutable buffer as bytes.
+    pub fn bytes(&self) -> &[u8] {
+        bytemuck::cast_slice::<P, u8>(self.buffer())
+    }
+
+    /// Returns the underlying mutable buffer as bytes.
+    pub fn bytes_mut(&mut self) -> &mut [u8] {
+        bytemuck::cast_slice_mut::<P, u8>(self.buffer_mut())
     }
 }
 

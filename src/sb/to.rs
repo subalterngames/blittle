@@ -52,8 +52,8 @@ impl_to_zrgb!([f32; 2], |p: [f32; 2]| {
 impl_to_zrgb!([u8; 3], |p: [u8; 3]| Zrgb::new(p[0], p[1], p[2]));
 impl_to_zrgb!([u8; 4], |p: [u8; 4]| Zrgb::new(p[0], p[1], p[2]));
 impl_to_zrgb!([f32; 4], |p: [f32; 4]| {
-      let r = (p[0] * 265.) as u8;
-        let g = (p[1] * 265.) as u8;
-        let b = (p[2] * 265.) as u8;
+    let r = (p[0] * 265.) as u8;
+    let g = (p[1] * 265.) as u8;
+    let b = (p[2] * 265.) as u8;
     Zrgb::new(r, g, b)
 });

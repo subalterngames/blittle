@@ -1,7 +1,9 @@
 use crate::Surface;
 use crate::convert::PixelConverter;
 
-impl<S: AsRef<[[f32; 4]]> + AsMut<[[f32; 4]]>> PixelConverter<[f32; 4]> for Surface<'_, S, [f32; 4]> {
+impl<S: AsRef<[[f32; 4]]> + AsMut<[[f32; 4]]>> PixelConverter<[f32; 4]>
+    for Surface<'_, S, [f32; 4]>
+{
     fn pixel_to_l8(pixel: &[f32; 4]) -> u8 {
         Self::pixel_to_l32(pixel) as u8
     }

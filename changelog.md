@@ -8,6 +8,8 @@ Removed `glam`. It just isn't as useful as what I'd hoped for.
 - `RectU::position` is now of type `PositionU`
 - `Surface::size` is now of type `Size`
 
+Also: Removed `bytemuck` as a required dependency and added a `bytes` feature.
+
 ## 0.5.1
 
 Fixed the implausibly-fast converter benchmarks.

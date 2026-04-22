@@ -26,8 +26,7 @@ impl<S: AsRef<[[u8; 2]]> + AsMut<[[u8; 2]]>> PixelConverter<[u8; 2]> for Surface
     }
 
     fn pixel_to_rgba8(pixel: &[u8; 2]) -> [u8; 4] {
-        let p = pixel[0];
-        [p, p, p, pixel[1]]
+        [pixel[0]; 4]
     }
 
     fn pixel_to_rgba32(pixel: &[u8; 2]) -> [f32; 4] {

@@ -31,14 +31,14 @@ impl Default for Zrgb {
 impl Deref for Zrgb {
     type Target = [u8; 4];
 
-    #[inline]
+    #[inline(always)]
     fn deref(&self) -> &Self::Target {
         unsafe { &*(self as *const Self).cast() }
     }
 }
 
 impl DerefMut for Zrgb {
-    #[inline]
+    #[inline(always)]
     fn deref_mut(&mut self) -> &mut Self::Target {
         unsafe { &mut *(self as *mut Self).cast() }
     }

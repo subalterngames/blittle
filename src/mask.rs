@@ -1,6 +1,5 @@
 use crate::Surface;
 use crate::error::Error;
-use bytemuck::{Pod, Zeroable};
 
 enum Mask {
     Pixel(usize),
@@ -17,18 +16,15 @@ enum Mask {
 pub struct MaskedSurface<
     's,
     S: AsRef<[P]> + AsMut<[P]>,
-    P: Copy + Clone + Sized + Default + Zeroable + Pod + Eq + PartialEq,
+    P: Copy + Clone + Sized + Default + Eq + PartialEq,
 > {
     surface: Surface<'s, S, P>,
     mask_color: P,
     mask: Option<Vec<Mask>>,
 }
 
-impl<
-    's,
-    S: AsRef<[P]> + AsMut<[P]>,
-    P: Copy + Clone + Sized + Default + Zeroable + Pod + Eq + PartialEq,
-> MaskedSurface<'s, S, P>
+impl<'s, S: AsRef<[P]> + AsMut<[P]>, P: Copy + Clone + Sized + Default + Eq + PartialEq>
+    MaskedSurface<'s, S, P>
 {
     pub const fn new(surface: Surface<'s, S, P>, mask_color: P) -> Self {
         Self {

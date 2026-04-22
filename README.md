@@ -42,8 +42,9 @@ let rgba = Rgba8Surface::from(&rgb);
 
 ## Feature Flags
 
+- `bytes` allows access to the underlying buffer of a `Surface` as bytes
 - `png` adds the `Png` trait, which can be used to read and write .png files. See: `blittle::png`
-- `serde` allows some structs such as `blittle::RectU` and `blittle::RectI` to be serializable.
+- `serde` allows some structs such as `RectU` and `RectI` to be serializable
 - `softbuffer` adds a new type of surface that can be created as a reference to a `softbuffer::Buffer`. See: `blittle::sb`
 
 ## Benchmarks
