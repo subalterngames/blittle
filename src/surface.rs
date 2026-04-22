@@ -16,8 +16,7 @@ pub type Rgba8Surface<'s> = Surface<'s, Vec<[u8; 4]>, [u8; 4]>;
 pub type L32Surface<'s> = Surface<'s, Vec<f32>, f32>;
 /// 32-bit grayscale + alpha.
 pub type La32Surface<'s> = Surface<'s, Vec<[f32; 2]>, [f32; 2]>;
-/// Red, green, blue, alpha as [f32; 4]s.
-/// This uses glam for that sweet sweet SIMD, so you can't get the underlying bytes buffer.
+/// 32-bit red, green, blue, alpha.
 pub type Rgba32Surface<'s> = Surface<'s, Vec<[f32; 4]>, [f32; 4]>;
 
 /// A Surface is a pixel buffer, a size, and some underlying data describing how to blit it to a given destination Surface.
