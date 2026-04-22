@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.6.0
+
+Removed `glam`. It just isn't as useful as what I'd hoped for.
+
+- `RectI::position` is now of type `PositionI`
+- `RectU::position` is now of type `PositionU`
+- `Surface::size` is now of type `Size`
+
 ## 0.5.1
 
 Fixed the implausibly-fast converter benchmarks.
