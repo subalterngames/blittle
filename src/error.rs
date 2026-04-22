@@ -4,6 +4,7 @@ use png::ColorType;
 use thiserror::Error;
 
 use crate::rect::RectI;
+use crate::{PositionU, Size};
 
 #[derive(Debug, Error)]
 pub enum Error {
@@ -12,7 +13,7 @@ pub enum Error {
         len,
         size
     )]
-    InvalidSize { size: USizeVec2, len: usize },
+    InvalidSize { size: Size, len: usize },
     #[error("The destination hasn't been set.")]
     NoDestinationRect,
     #[error("Source surface doesn't overlap with destination surface.")]
@@ -24,10 +25,7 @@ pub enum Error {
     #[error("Invalid blit area: {0}")]
     InvalidArea(RectI),
     #[error("Pixel {position} out of bounds of this surface of size: {size}")]
-    PixelPosition {
-        position: USizeVec2,
-        size: USizeVec2,
-    },
+    PixelPosition { position: PositionU, size: Size },
     #[error("Invalid mask size. Expected: {expected} Got: {actual}")]
     MaskSize { actual: usize, expected: usize },
     #[error("Surface is currently locked.")]

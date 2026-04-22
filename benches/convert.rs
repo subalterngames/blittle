@@ -1,6 +1,5 @@
 use blittle::*;
 use criterion::{Criterion, criterion_group, criterion_main};
-use glam::USizeVec2;
 use std::hint::black_box;
 
 const SRC_W: usize = 512;
@@ -8,7 +7,7 @@ const SRC_H: usize = 512;
 
 macro_rules! convert {
     ($group:ident, $from:tt, $to:tt, $name:literal) => {
-        let src = $from::new(USizeVec2::new(SRC_W, SRC_H));
+        let src = $from::new(Size::new(SRC_W, SRC_H));
         $group.bench_function($name, |b| {
             b.iter(|| {
                 black_box($to::from(&src));

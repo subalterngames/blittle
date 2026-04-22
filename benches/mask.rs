@@ -1,6 +1,5 @@
 use blittle::*;
 use criterion::{Criterion, criterion_group, criterion_main};
-use glam::{I64Vec2, USizeVec2};
 
 const SRC_W: usize = 512;
 const SRC_H: usize = 512;
@@ -9,9 +8,9 @@ const DST_H: usize = 1080;
 const SRC_COLOR: [u8; 4] = [0; 4];
 
 pub fn criterion_benchmark(c: &mut Criterion) {
-    let position = I64Vec2::new(2, 12);
-    let mut dst = Rgba8Surface::new_filled(USizeVec2::new(DST_W, DST_H), [255; 4]);
-    let mut src = Rgba8Surface::new_filled(USizeVec2::new(SRC_W, SRC_H), SRC_COLOR);
+    let position = PositionI::new(2, 12);
+    let mut dst = Rgba8Surface::new_filled(Size::new(DST_W, DST_H), [255; 4]);
+    let mut src = Rgba8Surface::new_filled(Size::new(SRC_W, SRC_H), SRC_COLOR);
     src.set_position(position, &dst).unwrap();
 
     let mask_color = [255, 0, 0, 0];
@@ -22,7 +21,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     group.bench_function("locked all", |b| b.iter(|| src.blit(&mut dst)));
     src.unlock();
     // Per-row.
-    let w = src.surface().get_size().x;
+    let w = src.surface().get_size().width;
     src.surface_mut()
         .unwrap()
         .buffer_mut()
@@ -33,7 +32,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     src.lock();
     group.bench_function("locked rows", |b| b.iter(|| src.blit(&mut dst)));
     // Per-pixel.
-    let mut src = Rgba8Surface::new_filled(USizeVec2::new(SRC_W, SRC_H), SRC_COLOR);
+    let mut src = Rgba8Surface::new_filled(Size::new(SRC_W, SRC_H), SRC_COLOR);
     src.set_position(position, &dst).unwrap();
 
     let mask_color = [255, 0, 0, 0];

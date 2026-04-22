@@ -1,4 +1,4 @@
-use glam::{I64Vec2, USizeVec2};
+use crate::{PositionI, PositionU, Size};
 use std::fmt::{Display, Formatter};
 
 macro_rules! clip_top_left {
@@ -12,16 +12,16 @@ macro_rules! clip_top_left {
 }
 
 macro_rules! clip_bottom_right {
-    ($position:ident, $size:ident, $other:ident, $c:ident) => {{
-        if $position.$c + $size.$c > $other.size.$c {
-            $size.$c = $other.size.$c - $position.$c;
+    ($position:ident, $size:ident, $other:ident, $c:ident, $d:ident) => {{
+        if $position.$c + $size.$d > $other.size.$d {
+            $size.$d = $other.size.$d - $position.$c;
         }
     }};
 }
 
 macro_rules! size {
     ($t:tt) => {
-        pub const fn from_size(size: USizeVec2) -> Self {
+        pub const fn from_size(size: Size) -> Self {
             Self {
                 position: $t::ZERO,
                 size,
@@ -43,15 +43,15 @@ macro_rules! overlaps {
 #[derive(Copy, Clone, Debug, Default)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct RectI {
-    pub position: I64Vec2,
-    pub size: USizeVec2,
+    pub position: PositionI,
+    pub size: Size,
 }
 
 impl RectI {
-    size!(I64Vec2);
+    size!(PositionI);
 
-    pub const fn new(position: I64Vec2, size: USizeVec2) -> Option<Self> {
-        if size.x == 0 || size.y == 0 {
+    pub const fn new(position: PositionI, size: Size) -> Option<Self> {
+        if size.width == 0 || size.height == 0 {
             None
         } else {
             Some(Self { position, size })
@@ -59,24 +59,24 @@ impl RectI {
     }
 
     pub const fn overlaps(&self, other: &Self) -> bool {
-        let other_w = other.size.x.cast_signed() as i64;
-        let other_h = other.size.y.cast_signed() as i64;
+        let other_w = other.size.width.cast_signed();
+        let other_h = other.size.height.cast_signed();
         overlaps!(self, other, other_w, other_h)
     }
 
     pub const fn clip(self, other: Self) -> Option<RectU> {
-        let other_w = other.size.x.cast_signed() as i64;
-        let other_h = other.size.y.cast_signed() as i64;
+        let other_w = other.size.width.cast_signed();
+        let other_h = other.size.height.cast_signed();
         // Don't try clipping if there is no overlap.
         if overlaps!(self, other, other_w, other_h) {
-            let mut position = USizeVec2::ZERO;
+            let mut position = PositionU::ZERO;
             clip_top_left!(self, position, x);
             clip_top_left!(self, position, y);
             let mut size = self.size;
-            clip_bottom_right!(position, size, other, x);
-            clip_bottom_right!(position, size, other, y);
+            clip_bottom_right!(position, size, other, x, width);
+            clip_bottom_right!(position, size, other, y, height);
             let rect = RectU { position, size };
-            if rect.size.x > 0 && rect.size.y > 0 {
+            if rect.size.width > 0 && rect.size.height > 0 {
                 Some(rect)
             } else {
                 None
@@ -88,7 +88,7 @@ impl RectI {
 
     pub const fn into_rectu(self) -> RectU {
         RectU {
-            position: USizeVec2 {
+            position: PositionU {
                 x: self.position.x.cast_unsigned() as usize,
                 y: self.position.y.cast_unsigned() as usize,
             },
@@ -107,22 +107,22 @@ impl Display for RectI {
 #[derive(Copy, Clone, Debug, Default)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct RectU {
-    pub position: USizeVec2,
-    pub size: USizeVec2,
+    pub position: PositionU,
+    pub size: Size,
 }
 
 impl RectU {
-    size!(USizeVec2);
+    size!(PositionU);
 
     pub const fn overlaps(&self, other: &Self) -> bool {
-        overlaps!(self, other, other.size.x, other.size.y)
+        overlaps!(self, other, other.size.width, other.size.height)
     }
 
     pub const fn into_recti(self) -> RectI {
         RectI {
-            position: I64Vec2 {
-                x: self.position.x.cast_signed() as i64,
-                y: self.position.y.cast_signed() as i64,
+            position: PositionI {
+                x: self.position.x.cast_signed(),
+                y: self.position.y.cast_signed(),
             },
             size: self.size,
         }

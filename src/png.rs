@@ -1,7 +1,6 @@
-use crate::Surface;
 use crate::error::Error;
+use crate::{Size, Surface};
 use bytemuck::{Pod, Zeroable, cast_slice};
-use glam::USizeVec2;
 use png::*;
 use std::fs::File;
 use std::io::{BufRead, BufWriter, Seek};
@@ -42,7 +41,7 @@ pub trait Png<S: AsRef<[P]> + AsMut<[P]>, P: Copy + Clone + Sized + Default + Ze
             .map_err(|e| Error::PngFile(path.as_ref().to_path_buf(), e))?;
         let w = BufWriter::new(file);
         let size = surface.get_size();
-        let mut encoder = Encoder::new(w, size.x as u32, size.y as u32);
+        let mut encoder = Encoder::new(w, size.width as u32, size.height as u32);
         encoder.set_color(Self::get_png_color_type());
         encoder.set_depth(BitDepth::Eight);
         let mut writer = encoder.write_header().map_err(Error::PngHeader)?;
@@ -62,7 +61,7 @@ pub trait Png<S: AsRef<[P]> + AsMut<[P]>, P: Copy + Clone + Sized + Default + Ze
         let info = reader.next_frame(&mut buf).unwrap();
         if info.color_type == Self::get_png_color_type() {
             Ok(Surface {
-                size: USizeVec2::new(info.width as usize, info.height as usize),
+                size: Size::new(info.width as usize, info.height as usize),
                 buffer: cast_slice::<u8, P>(&buf[..info.buffer_size()]).to_vec(),
                 destination_rect: None,
                 blit_area: None,

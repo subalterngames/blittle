@@ -27,8 +27,8 @@ pub trait ToZrgb<S: AsRef<[P]> + AsMut<[P]>, P: Copy + Clone + Sized + Default +
         let (destination_rect, blit_area) = surface.get_blit_params(destination.size)?;
         let dst_offset =
             destination.get_index(destination_rect.position.x, destination_rect.position.y);
-        let len = blit_area.size.x * blit_area.size.y;
-        let src_offset = blit_area.position.x + blit_area.position.y * surface.get_size().x;
+        let len = blit_area.size.width * blit_area.size.height;
+        let src_offset = blit_area.position.x + blit_area.position.y * surface.get_size().width;
         for i in 0..len {
             let src_index = src_offset + i;
             let p = surface.buffer()[src_index];

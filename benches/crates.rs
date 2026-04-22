@@ -1,7 +1,6 @@
-use blit::{Blit, BlitBuffer, BlitOptions, geom::Size};
+use blit::{Blit, BlitBuffer, BlitOptions};
 use blittle::*;
 use criterion::{Criterion, criterion_group, criterion_main};
-use glam::{I64Vec2, USizeVec2};
 use sdl2::{
     pixels::{Color, PixelFormatEnum},
     surface::Surface,
@@ -18,9 +17,9 @@ fn criterion_benchmark(c: &mut Criterion) {
     let mut group = c.benchmark_group("Compare with other crates");
 
     // blittle
-    let position = I64Vec2::new(2, 12);
-    let mut dst = Rgba8Surface::new_filled(USizeVec2::new(DST_W, DST_H), [255; 4]);
-    let mut src = Rgba8Surface::new_filled(USizeVec2::new(SRC_W, SRC_H), SRC_COLOR);
+    let position = PositionI::new(2, 12);
+    let mut dst = Rgba8Surface::new_filled(Size::new(DST_W, DST_H), [255; 4]);
+    let mut src = Rgba8Surface::new_filled(Size::new(SRC_W, SRC_H), SRC_COLOR);
     src.set_position(position, &dst).unwrap();
 
     // blit
@@ -28,7 +27,7 @@ fn criterion_benchmark(c: &mut Criterion) {
     let src_u32 = vec![255u32; SRC_LEN];
     let blit_buffer = BlitBuffer::from_buffer(&src_u32, SRC_W, 0);
     let position = BlitOptions::new_position(position.x, position.y);
-    let size = Size {
+    let size = blit::geom::Size {
         width: DST_W as u32,
         height: DST_H as u32,
     };

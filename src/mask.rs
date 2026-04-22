@@ -57,11 +57,11 @@ impl<
         let (x0, x1, y0, y1) = match self.surface.blit_area {
             Some(blit_area) => (
                 blit_area.position.x,
-                blit_area.position.x + blit_area.size.x,
+                blit_area.position.x + blit_area.size.width,
                 blit_area.position.y,
-                blit_area.position.y + blit_area.size.y,
+                blit_area.position.y + blit_area.size.height,
             ),
-            None => (0, self.surface.size.x, 0, self.surface.size.y),
+            None => (0, self.surface.size.width, 0, self.surface.size.height),
         };
         self.mask = {
             let mut mask = vec![];
@@ -145,7 +145,7 @@ impl<
             }
             None => {
                 // Iterate per-pixel.
-                let len = blit_area.size.x * blit_area.size.y;
+                let len = blit_area.size.width * blit_area.size.height;
                 let src_offset = self
                     .surface
                     .get_index(blit_area.position.x, blit_area.position.y);
@@ -166,9 +166,8 @@ impl<
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::Rgb8Surface;
     use crate::png::Png;
-    use glam::{I64Vec2, USizeVec2};
+    use crate::{PositionI, Rgb8Surface, Size};
     use std::env::current_dir;
 
     const SRC_W: usize = 32;
@@ -178,9 +177,18 @@ mod tests {
 
     #[test]
     fn test_blit_mask() {
-        let position = I64Vec2 { x: 2, y: 12 };
-        let src_size = USizeVec2 { x: SRC_W, y: SRC_H };
-        let mut dst = Surface::new_filled(USizeVec2 { x: DST_W, y: DST_H }, [0u8, 0, 0]);
+        let position = PositionI { x: 2, y: 12 };
+        let src_size = Size {
+            width: SRC_W,
+            height: SRC_H,
+        };
+        let mut dst = Surface::new_filled(
+            Size {
+                width: DST_W,
+                height: DST_H,
+            },
+            [0u8, 0, 0],
+        );
 
         let src_color = [255u8, 255, 255];
         let mask_color = [255, 0, 255];
