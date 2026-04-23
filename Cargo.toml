@@ -1,6 +1,6 @@
 [package]
 name = "blittle"
-version = "0.6.1"
+version = "0.6.2"
 edition = "2024"
 description = "A fast little blitter"
 authors = ["Esther Alter <subalterngames@gmail.com>"]
@@ -39,6 +39,7 @@ harness = false
 required-features = ["std"]
 
 [features]
+default = ["std"]
 bytes = ["dep:bytemuck"]
 png = ["bytes", "dep:png"]
 serde = ["dep:serde"]

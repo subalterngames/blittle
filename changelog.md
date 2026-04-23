@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.6.2
+
+`std` is a default feature.
+
 ## 0.6.1
 
 Added `no_std` support.
