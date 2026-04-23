@@ -1,6 +1,7 @@
-use crate::Surface;
 use crate::error::Error;
+use crate::{RectU, Surface};
 
+#[cfg(feature = "std")]
 enum Mask {
     Pixel(usize),
     Row { i0: usize, i1: usize },
@@ -13,6 +14,8 @@ enum Mask {
 ///
 /// MaskedSurfaces can be locked or unlocked.
 /// If the surface is locked, then pixels can't be manipulated, but blit speed is optimized.
+///
+/// Locking and unlocking is unavailable in `no_std`
 pub struct MaskedSurface<
     's,
     S: AsRef<[P]> + AsMut<[P]>,
@@ -20,6 +23,7 @@ pub struct MaskedSurface<
 > {
     surface: Surface<'s, S, P>,
     mask_color: P,
+    #[cfg(feature = "std")]
     mask: Option<Vec<Mask>>,
 }
 
@@ -30,21 +34,29 @@ impl<'s, S: AsRef<[P]> + AsMut<[P]>, P: Copy + Clone + Sized + Default + Eq + Pa
         Self {
             surface,
             mask_color,
+            #[cfg(feature = "std")]
             mask: None,
         }
     }
 
     /// Set the color of the mask. Returns an error if the surface is locked.
     pub const fn set_mask_color(&mut self, mask_color: P) -> Result<(), Error> {
+        #[cfg(feature = "std")]
         if self.is_locked() {
             Err(Error::Locked)
         } else {
             self.mask_color = mask_color;
             Ok(())
         }
+        #[cfg(not(feature = "std"))]
+        {
+            self.mask_color = mask_color;
+            Ok(())
+        }
     }
 
     /// Lock the surface, optimizing blit speed while preventing pixel manipulation.
+    #[cfg(feature = "std")]
     pub fn lock(&mut self) {
         if self.is_locked() {
             return;
@@ -87,12 +99,14 @@ impl<'s, S: AsRef<[P]> + AsMut<[P]>, P: Copy + Clone + Sized + Default + Eq + Pa
     }
 
     /// Returns true if the surface is locked.
+    #[cfg(feature = "std")]
     pub const fn is_locked(&self) -> bool {
         self.mask.is_some()
     }
 
     /// Unlock the surface.
     /// Blit speed will be unoptimized while pixel manipulation will be permitted.
+    #[cfg(feature = "std")]
     pub fn unlock(&mut self) {
         self.mask = None;
     }
@@ -108,11 +122,14 @@ impl<'s, S: AsRef<[P]> + AsMut<[P]>, P: Copy + Clone + Sized + Default + Eq + Pa
     /// Returns a mutable reference of the surface.
     /// Returns an error if the masked surface is locked.
     pub const fn surface_mut(&mut self) -> Result<&mut Surface<'s, S, P>, Error> {
+        #[cfg(feature = "std")]
         if self.is_locked() {
             Err(Error::Locked)
         } else {
             Ok(&mut self.surface)
         }
+        #[cfg(not(feature = "std"))]
+        Ok(&mut self.surface)
     }
 
     /// Blit onto `other`, using a mask.
@@ -124,6 +141,7 @@ impl<'s, S: AsRef<[P]> + AsMut<[P]>, P: Copy + Clone + Sized + Default + Eq + Pa
     ) -> Result<(), Error> {
         let (destination_rect, blit_area) = self.surface.get_blit_params(other.size)?;
         let dst_offset = other.get_index(destination_rect.position.x, destination_rect.position.y);
+        #[cfg(feature = "std")]
         match self.mask.as_ref() {
             Some(mask) => {
                 mask.iter().for_each(|m| match m {
@@ -140,21 +158,31 @@ impl<'s, S: AsRef<[P]> + AsMut<[P]>, P: Copy + Clone + Sized + Default + Eq + Pa
                 });
             }
             None => {
-                // Iterate per-pixel.
-                let len = blit_area.size.width * blit_area.size.height;
-                let src_offset = self
-                    .surface
-                    .get_index(blit_area.position.x, blit_area.position.y);
-                for i in 0..len {
-                    let src_index = src_offset + i;
-                    if self.surface.buffer.as_ref()[src_index] != self.mask_color {
-                        other.buffer.as_mut()[dst_offset + i] =
-                            self.surface.buffer.as_ref()[src_index];
-                    }
-                }
+                self.blit_unlocked(blit_area, dst_offset, other);
             }
         }
+        #[cfg(not(feature = "std"))]
+        self.blit_unlocked(blit_area, dst_offset, other);
         Ok(())
+    }
+
+    fn blit_unlocked<B: AsRef<[P]> + AsMut<[P]>>(
+        &self,
+        blit_area: RectU,
+        dst_offset: usize,
+        other: &mut Surface<'_, B, P>,
+    ) {
+        // Iterate per-pixel.
+        let len = blit_area.size.width * blit_area.size.height;
+        let src_offset = self
+            .surface
+            .get_index(blit_area.position.x, blit_area.position.y);
+        for i in 0..len {
+            let src_index = src_offset + i;
+            if self.surface.buffer.as_ref()[src_index] != self.mask_color {
+                other.buffer.as_mut()[dst_offset + i] = self.surface.buffer.as_ref()[src_index];
+            }
+        }
     }
 }
 
