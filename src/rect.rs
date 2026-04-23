@@ -1,5 +1,8 @@
 use crate::{PositionI, PositionU, Size};
-use std::fmt::{Display, Formatter};
+#[cfg(not(feature = "std"))]
+use core::fmt::{Display, Formatter, Result as DisplayResult};
+#[cfg(feature = "std")]
+use std::fmt::{Display, Formatter, Result as DisplayResult};
 
 macro_rules! clip_top_left {
     ($self:ident, $position:ident, $c:ident) => {{
@@ -37,6 +40,16 @@ macro_rules! overlaps {
             && $self.position.y <= $other.position.y + $other_h
             && $self.position.y + $other_h > $other.position.y
     }};
+}
+
+macro_rules! impl_display_rect {
+    ($r:ident) => {
+        impl Display for $r {
+            fn fmt(&self, f: &mut Formatter<'_>) -> DisplayResult {
+                write!(f, "{}, {}", self.position, self.size)
+            }
+        }
+    };
 }
 
 /// A rectangle in which the `position` can have negative values.
@@ -97,12 +110,6 @@ impl RectI {
     }
 }
 
-impl Display for RectI {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}, {}", self.position, self.size)
-    }
-}
-
 /// A rectangle defined by a position and size.
 #[derive(Copy, Clone, Debug, Default)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
@@ -128,3 +135,6 @@ impl RectU {
         }
     }
 }
+
+impl_display_rect!(RectI);
+impl_display_rect!(RectU);

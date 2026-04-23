@@ -1,6 +1,6 @@
 [package]
 name = "blittle"
-version = "0.6.0"
+version = "0.6.1"
 edition = "2024"
 description = "A fast little blitter"
 authors = ["Esther Alter <subalterngames@gmail.com>"]
@@ -26,20 +26,24 @@ sdl2 = "0.38.0"
 [[bench]]
 name = "convert"
 harness = false
+required-features = ["std"]
 
 [[bench]]
 name = "crates"
 harness = false
+required-features = ["std"]
 
 [[bench]]
 name = "mask"
 harness = false
+required-features = ["std"]
 
 [features]
 bytes = ["dep:bytemuck"]
 png = ["bytes", "dep:png"]
 serde = ["dep:serde"]
-softbuffer = ["dep:bytemuck", "dep:raw-window-handle", "dep:softbuffer"]
+softbuffer = ["dep:bytemuck", "dep:raw-window-handle", "dep:softbuffer", "std"]
+std = []
 
 [package.metadata.docs.rs]
 all-features = true

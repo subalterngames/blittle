@@ -1,4 +1,7 @@
-use std::fmt::{Display, Formatter};
+#[cfg(not(feature = "std"))]
+use core::fmt::{Display, Formatter, Result as DisplayResult};
+#[cfg(feature = "std")]
+use std::fmt::{Display, Formatter, Result as DisplayResult};
 
 macro_rules! impl_position {
     ($position:ident, $c:ty) => {
@@ -19,7 +22,7 @@ macro_rules! impl_position {
         }
 
         impl Display for $position {
-            fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+            fn fmt(&self, f: &mut Formatter<'_>) -> DisplayResult {
                 write!(f, "({}, {})", self.x, self.y)
             }
         }

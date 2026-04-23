@@ -1,4 +1,7 @@
-use std::fmt::{Display, Formatter};
+#[cfg(not(feature = "std"))]
+use core::fmt::{Display, Formatter, Result as DisplayResult};
+#[cfg(feature = "std")]
+use std::fmt::{Display, Formatter, Result as DisplayResult};
 
 /// Rectangular bounds defined by a width and height.
 #[derive(Copy, Clone, Debug, Default, Eq, PartialEq)]
@@ -15,7 +18,7 @@ impl Size {
 }
 
 impl Display for Size {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> DisplayResult {
         write!(f, "({}, {})", self.width, self.height)
     }
 }

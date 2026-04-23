@@ -27,7 +27,7 @@ pub enum Error {
     PixelPosition { position: PositionU, size: Size },
     #[error("Invalid mask size. Expected: {expected} Got: {actual}")]
     MaskSize { actual: usize, expected: usize },
-    #[error("Surface is currently locked.")]
+    #[error("Masked surface is currently locked.")]
     Locked,
     #[cfg(feature = "png")]
     #[error("Failed to write to {0} Reason: {1}")]

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.6.1
+
+Added `no_std` support.
+
 ## 0.6.0
 
 Removed `glam`. It just isn't as useful as what I'd hoped for.

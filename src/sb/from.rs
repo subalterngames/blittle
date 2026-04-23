@@ -1,6 +1,6 @@
 use crate::Surface;
+use crate::convert::{f32_to_u8, grayscale, u8_to_f32};
 use crate::sb::{SoftbufferSurface, Zrgb};
-use crate::{L8Surface, L32Surface, Rgb8Surface};
 use bytemuck::{Pod, Zeroable};
 use std::marker::PhantomData;
 use std::ops::Deref;
@@ -50,21 +50,16 @@ impl_from_zrgb!([u8; 4], |p: &Zrgb| {
     [p[1], p[2], p[3], 255]
 });
 impl_from_zrgb!([f32; 4], |p: &Zrgb| {
-    [
-        L8Surface::u8_to_f32(p[1]),
-        L8Surface::u8_to_f32(p[2]),
-        L8Surface::u8_to_f32(p[3]),
-        1.,
-    ]
+    [u8_to_f32(p[1]), u8_to_f32(p[2]), u8_to_f32(p[3]), 1.]
 });
 
 #[inline(always)]
 fn zrgb_to_f32(pixel: &Zrgb) -> f32 {
     let p = pixel.deref();
-    Rgb8Surface::grayscale(p[1], p[2], p[3])
+    grayscale(p[1], p[2], p[3])
 }
 
 #[inline(always)]
 fn zrgb_to_u8(pixel: &Zrgb) -> u8 {
-    L32Surface::f32_to_u8(zrgb_to_f32(pixel))
+    f32_to_u8(zrgb_to_f32(pixel))
 }

@@ -1,5 +1,6 @@
+use crate::convert::f32_to_u8;
 use crate::sb::{SoftbufferSurface, Zrgb};
-use crate::{Error, L32Surface, Surface};
+use crate::{Error, Surface};
 use bytemuck::{Pod, Zeroable};
 
 macro_rules! impl_to_zrgb {
@@ -42,11 +43,11 @@ impl_to_zrgb!([u8; 2], |p: [u8; 2]| {
     Zrgb::new(p, p, p)
 });
 impl_to_zrgb!(f32, |p| {
-    let p = L32Surface::f32_to_u8(p);
+    let p = f32_to_u8(p);
     Zrgb::new(p, p, p)
 });
 impl_to_zrgb!([f32; 2], |p: [f32; 2]| {
-    let p = L32Surface::f32_to_u8(p[0]);
+    let p = f32_to_u8(p[0]);
     Zrgb::new(p, p, p)
 });
 impl_to_zrgb!([u8; 3], |p: [u8; 3]| Zrgb::new(p[0], p[1], p[2]));

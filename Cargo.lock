@@ -81,7 +81,7 @@ dependencies = [
 
 [[package]]
 name = "blittle"
-version = "0.6.0"
+version = "0.6.1"
 dependencies = [
  "blit",
  "bytemuck",

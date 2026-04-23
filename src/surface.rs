@@ -1,22 +1,33 @@
 use crate::error::Error;
 use crate::rect::{RectI, RectU};
 use crate::{PositionI, PositionU, Size};
+#[cfg(not(feature = "std"))]
+use core::marker::PhantomData;
+#[cfg(feature = "std")]
 use std::marker::PhantomData;
 
-/// Grayscale.
-pub type L8Surface<'s> = Surface<'s, Vec<u8>, u8>;
-/// Grayscale + alpha.
-pub type La8Surface<'s> = Surface<'s, Vec<[u8; 2]>, [u8; 2]>;
-/// Red, green, blue.
-pub type Rgb8Surface<'s> = Surface<'s, Vec<[u8; 3]>, [u8; 3]>;
-/// Red, green, blue, alpha.
-pub type Rgba8Surface<'s> = Surface<'s, Vec<[u8; 4]>, [u8; 4]>;
-/// 32-bit grayscale.
-pub type L32Surface<'s> = Surface<'s, Vec<f32>, f32>;
-/// 32-bit grayscale + alpha.
-pub type La32Surface<'s> = Surface<'s, Vec<[f32; 2]>, [f32; 2]>;
-/// 32-bit red, green, blue, alpha.
-pub type Rgba32Surface<'s> = Surface<'s, Vec<[f32; 4]>, [f32; 4]>;
+#[cfg(feature = "std")]
+mod type_aliases {
+    use super::Surface;
+
+    /// Grayscale.
+    pub type L8Surface<'s> = Surface<'s, Vec<u8>, u8>;
+    /// Grayscale + alpha.
+    pub type La8Surface<'s> = Surface<'s, Vec<[u8; 2]>, [u8; 2]>;
+    /// Red, green, blue.
+    pub type Rgb8Surface<'s> = Surface<'s, Vec<[u8; 3]>, [u8; 3]>;
+    /// Red, green, blue, alpha.
+    pub type Rgba8Surface<'s> = Surface<'s, Vec<[u8; 4]>, [u8; 4]>;
+    /// 32-bit grayscale.
+    pub type L32Surface<'s> = Surface<'s, Vec<f32>, f32>;
+    /// 32-bit grayscale + alpha.
+    pub type La32Surface<'s> = Surface<'s, Vec<[f32; 2]>, [f32; 2]>;
+    /// 32-bit red, green, blue, alpha.
+    pub type Rgba32Surface<'s> = Surface<'s, Vec<[f32; 4]>, [f32; 4]>;
+}
+
+#[cfg(feature = "std")]
+pub use type_aliases::*;
 
 /// A Surface is a pixel buffer, a size, and some underlying data describing how to blit it to a given destination Surface.
 ///
@@ -55,6 +66,7 @@ pub struct Surface<'s, S: AsRef<[P]> + AsMut<[P]>, P: Copy + Clone + Sized + Def
     pub(crate) _p: PhantomData<&'s P>,
 }
 
+#[cfg(feature = "std")]
 impl<P: Copy + Clone + Sized + Default> Surface<'_, Vec<P>, P> {
     /// Get a new surface.
     ///
@@ -406,6 +418,7 @@ impl<
     }
 }
 
+#[cfg(feature = "std")]
 #[cfg(test)]
 mod tests {
     use super::*;
