@@ -53,7 +53,7 @@ let rgba = Rgba8Surface::from(&rgb);
 If `blittle` is `no_std`, you'll lose some functionality:
 
 - No type aliases for `Surface` (they are all backed by Vecs)
-- No `PixelConverter`
+- No implementations for converting one type of surface to another
 - Can't add anything from the `png` or `softbuffer` features
 - `MaskedSurface` can't lock/unlock
 
