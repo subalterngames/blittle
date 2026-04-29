@@ -3,7 +3,8 @@ mod blender;
 
 use crate::blend::blender::Blender;
 use crate::lock::LockableSurface;
-use crate::{Error, Surface};
+use crate::lock::blitter::PixelBlitter;
+use crate::{PositionI, Rgba32Surface, Surface};
 pub use blend_mode::BlendMode;
 
 type Pixel = [f32; 4];
@@ -64,23 +65,8 @@ impl<'s, S: AsRef<[[f32; 4]]> + AsMut<[[f32; 4]]>> BlendableSurface<'s, S> {
         }
     }
 
-    /// Set the blend mode and alpha (0-1). Returns an error if the surface is locked.
-    pub fn set_blend_mode(&mut self, blend_mode: BlendMode, alpha: f32) -> Result<(), Error> {
-        #[cfg(feature = "std")]
-        if self.is_locked() {
-            Err(Error::Locked)
-        } else {
-            self.set_blend_mode_inner(blend_mode, alpha);
-            Ok(())
-        }
-        #[cfg(not(feature = "std"))]
-        {
-            self.set_blend_mode_inner(blend_mode, alpha);
-            Ok(())
-        }
-    }
-
-    fn set_blend_mode_inner(&mut self, blend_mode: BlendMode, alpha: f32) {
+    /// Set the blend mode and alpha (0-1)
+    pub const fn set_blend_mode(&mut self, blend_mode: BlendMode, alpha: f32) {
         let f = match &blend_mode {
             BlendMode::Normal => Self::normal,
             BlendMode::Multiply => Self::multiply,
@@ -99,6 +85,19 @@ impl<'s, S: AsRef<[[f32; 4]]> + AsMut<[[f32; 4]]>> BlendableSurface<'s, S> {
             BlendMode::DarkenOnly => Self::darken_only,
         };
         self.blitter = Blender::new(f, alpha);
+    }
+
+    pub fn finish_blending(&self) -> Rgba32Surface<'s> {
+        let mut bottom = Rgba32Surface::new_filled(self.surface.size, [1.; 4]);
+        let blender = Blender::new(Self::normal, 1.);
+        self.surface
+            .buffer()
+            .iter()
+            .zip(bottom.buffer.iter_mut())
+            .for_each(|(top, bottom)| {
+                blender.blit_pixel(*top, bottom);
+            });
+        bottom
     }
 
     const fn normal(top: Pixel, bottom: &mut Pixel) {
@@ -228,5 +227,37 @@ impl<'s, S: AsRef<[[f32; 4]]> + AsMut<[[f32; 4]]>> BlendableSurface<'s, S> {
 
     const fn get_dodge(top: &Pixel, bottom: &Pixel, i: usize) -> f32 {
         (bottom[i] / (1. - top[i])).clamp(0., 1.)
+    }
+}
+
+#[cfg(feature = "png")]
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::png::Png;
+    use crate::{PositionI, Rgb8Surface, Rgba8Surface, Rgba32Surface};
+    use std::io::Cursor;
+
+    #[test]
+    fn test_overlay() {
+        let bottom =
+            Rgba8Surface::read_png(Cursor::new(include_bytes!("../../test_images/plasma.png")))
+                .unwrap();
+        let top = Rgb8Surface::read_png(Cursor::new(include_bytes!("../../test_images/text.png")))
+            .unwrap();
+
+        let mut top_blendable = BlendableSurface::new(Rgba32Surface::from(&top));
+        let mut bottom = Rgba32Surface::from(&bottom);
+
+        top_blendable
+            .surface_mut()
+            .unwrap()
+            .set_position(PositionI::ZERO, &bottom)
+            .unwrap();
+        top_blendable.set_blend_mode(BlendMode::Burn, 0.5);
+        top_blendable.blit(&mut bottom).unwrap();
+        let finished = BlendableSurface::new(bottom).finish_blending();
+
+        Rgba8Surface::write_png(&Rgba8Surface::from(&finished), "test_output/overlay.png").unwrap();
     }
 }
