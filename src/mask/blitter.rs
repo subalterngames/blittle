@@ -15,11 +15,11 @@ impl<P: Copy + Clone + Sized + Default + Eq + PartialEq> PixelBlitter<P> for Mas
         *pixel != self.mask_color
     }
 
-    fn blit_pixel(&self, top: P, bottom: &mut P) {
-        *bottom = top;
-    }
-
     fn blit_row<B: AsRef<[P]> + AsMut<[P]>>(&self, top: &[P], bottom: &mut [P]) {
         bottom.copy_from_slice(top);
+    }
+
+    fn blit_pixel(&self, top: P, bottom: &mut P) {
+        *bottom = top;
     }
 }

@@ -1,15 +1,14 @@
 mod blitter;
 
-use crate::lock::blitter::PixelBlitter;
-use crate::lock::{LockableSurface, LockedIndices};
-use crate::{Error, RectU, Surface};
+use crate::lock::LockableSurface;
+use crate::{Error, Surface};
 use blitter::MaskBlitter;
 
-pub type MaskedSurface<
-    's,
-    S: AsRef<[P]> + AsMut<[P]>,
-    P: Copy + Clone + Sized + Default + Eq + PartialEq,
-> = LockableSurface<'s, S, P, MaskBlitter<P>>;
+/// A surface with a mask color. Pixels of the mask color will not blit to the destination.
+///
+/// A MaskedSurface can be locked or unlocked.
+/// If locked, the surface can't be mutated, but blitting will be faster.
+pub type MaskedSurface<'s, S, P> = LockableSurface<'s, S, P, MaskBlitter<P>>;
 
 impl<'s, S: AsRef<[P]> + AsMut<[P]>, P: Copy + Clone + Sized + Default + Eq + PartialEq>
     MaskedSurface<'s, S, P>

@@ -13,7 +13,6 @@ categories = ["game-development", "graphics", "rendering"]
 [dependencies]
 bytemuck = { version = "1.25.0", optional = true }
 png =  { version = "0.18.1", optional = true }
-rand = { version = "0.10.1", optional = true, features = ["thread_rng"] }
 raw-window-handle = { version = "0.6.2", optional = true }
 serde = { version = "1", features = ["derive"], optional = true}
 softbuffer = { version = "0.4.8", optional = true }
@@ -26,7 +25,6 @@ sdl2 = "0.38.0"
 
 [features]
 default = ["std"]
-dissolve = ["dep:rand", "std"]
 bytes = ["dep:bytemuck", "std"]
 png = ["bytes", "dep:png", "std"]
 serde = ["dep:serde"]

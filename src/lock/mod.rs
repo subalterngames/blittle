@@ -21,7 +21,7 @@ pub struct LockableSurface<
 impl<
     's,
     S: AsRef<[P]> + AsMut<[P]>,
-    P: Copy + Clone + Sized + Default + Eq + PartialEq,
+    P: Copy + Clone + Sized + Default,
     #[cfg(feature = "std")] L: PixelBlitter<P>,
 > LockableSurface<'s, S, P, L>
 {
@@ -105,7 +105,7 @@ impl<
         Ok(&mut self.surface)
     }
 
-    /// Blit onto `other`, using a mask.
+    /// Blit onto `other`.
     ///
     /// This can be called if this masked surface is unlocked, but it'll be slower.
     pub fn blit<B: AsRef<[P]> + AsMut<[P]>>(
