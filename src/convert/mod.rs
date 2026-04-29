@@ -23,6 +23,9 @@ pub trait PixelConverter<P: Copy + Clone + Sized + Default> {
     fn pixel_to_rgba8(pixel: &P) -> [u8; 4];
 
     fn pixel_to_rgba32(pixel: &P) -> [f32; 4];
+
+    #[cfg(feature = "softbuffer")]
+    fn pixel_to_zrgb(pixel: &P) -> crate::sb::Zrgb;
 }
 
 pub(crate) const fn f32_to_u8(pixel: f32) -> u8 {

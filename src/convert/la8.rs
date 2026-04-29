@@ -1,5 +1,7 @@
 use crate::Surface;
 use crate::convert::{PixelConverter, u8_to_f32};
+#[cfg(feature = "softbuffer")]
+use crate::sb::Zrgb;
 
 impl<S: AsRef<[[u8; 2]]> + AsMut<[[u8; 2]]>> PixelConverter<[u8; 2]> for Surface<'_, S, [u8; 2]> {
     fn pixel_to_l8(pixel: &[u8; 2]) -> u8 {
@@ -30,5 +32,11 @@ impl<S: AsRef<[[u8; 2]]> + AsMut<[[u8; 2]]>> PixelConverter<[u8; 2]> for Surface
         let p = u8_to_f32(pixel[0]);
         let a = u8_to_f32(pixel[1]);
         [p, p, p, a]
+    }
+
+    #[cfg(feature = "softbuffer")]
+    fn pixel_to_zrgb(pixel: &[u8; 2]) -> Zrgb {
+        let p = pixel[0];
+        Zrgb::new(p, p, p)
     }
 }

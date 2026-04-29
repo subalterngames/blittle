@@ -2,6 +2,7 @@
 #![doc = include_str!("../README.md")]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 
+mod blend;
 mod convert;
 mod error;
 mod mask;
@@ -14,6 +15,7 @@ pub mod sb;
 mod size;
 mod surface;
 
+pub use blend::*;
 pub use convert::PixelConverter;
 pub use error::Error;
 pub use mask::MaskedSurface;

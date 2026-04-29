@@ -1,5 +1,6 @@
+use crate::convert::{f32_to_u8, grayscale, u8_to_f32};
+use crate::{PixelConverter, Surface};
 use bytemuck::{Pod, Zeroable};
-use std::ops::{Deref, DerefMut};
 
 /// A pixel color in a softbuffer Buffer.
 ///
@@ -28,18 +29,41 @@ impl Default for Zrgb {
     }
 }
 
-impl Deref for Zrgb {
-    type Target = [u8; 4];
-
-    #[inline(always)]
-    fn deref(&self) -> &Self::Target {
-        unsafe { &*(self as *const Self).cast() }
+impl<S: AsRef<[Zrgb]> + AsMut<[Zrgb]>> PixelConverter<Zrgb> for Surface<'_, S, Zrgb> {
+    fn pixel_to_l8(pixel: &Zrgb) -> u8 {
+        f32_to_u8(Self::pixel_to_l32(pixel))
     }
-}
 
-impl DerefMut for Zrgb {
-    #[inline(always)]
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        unsafe { &mut *(self as *mut Self).cast() }
+    fn pixel_to_la8(pixel: &Zrgb) -> [u8; 2] {
+        [Self::pixel_to_l8(pixel), 255]
+    }
+
+    fn pixel_to_l32(pixel: &Zrgb) -> f32 {
+        grayscale(pixel.r, pixel.g, pixel.b)
+    }
+
+    fn pixel_to_la32(pixel: &Zrgb) -> [f32; 2] {
+        [Self::pixel_to_l32(pixel), 1.]
+    }
+
+    fn pixel_to_rgb8(pixel: &Zrgb) -> [u8; 3] {
+        [pixel.r, pixel.g, pixel.b]
+    }
+
+    fn pixel_to_rgba8(pixel: &Zrgb) -> [u8; 4] {
+        [pixel.r, pixel.g, pixel.b, 255]
+    }
+
+    fn pixel_to_rgba32(pixel: &Zrgb) -> [f32; 4] {
+        [
+            u8_to_f32(pixel.r),
+            u8_to_f32(pixel.g),
+            u8_to_f32(pixel.b),
+            1.,
+        ]
+    }
+
+    fn pixel_to_zrgb(pixel: &Zrgb) -> Zrgb {
+        *pixel
     }
 }

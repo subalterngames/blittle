@@ -2,9 +2,13 @@ use crate::error::Error;
 use crate::{RectU, Surface};
 
 #[cfg(feature = "std")]
-enum Mask {
+pub(crate) enum Mask {
     Pixel(usize),
     Row { i0: usize, i1: usize },
+}
+
+pub trait MaskableSurface {
+    
 }
 
 /// A surface that uses a pixel color as a mask.

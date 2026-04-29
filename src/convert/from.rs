@@ -74,6 +74,27 @@ impl_from_surface!([f32; 4], [f32; 2], pixel_to_la32);
 impl_from_surface!([f32; 4], [u8; 3], pixel_to_rgb8);
 impl_from_surface!([f32; 4], [u8; 4], pixel_to_rgba8);
 
+#[cfg(feature = "softbuffer")]
+mod impl_softbuffer {
+    use super::*;
+    use crate::sb::Zrgb;
+
+    impl_from_surface!(u8, Zrgb, pixel_to_zrgb);
+    impl_from_surface!([u8; 2], Zrgb, pixel_to_zrgb);
+    impl_from_surface!(f32, Zrgb, pixel_to_zrgb);
+    impl_from_surface!([f32; 2], Zrgb, pixel_to_zrgb);
+    impl_from_surface!([u8; 3], Zrgb, pixel_to_zrgb);
+    impl_from_surface!([u8; 4], Zrgb, pixel_to_zrgb);
+    impl_from_surface!([f32; 4], Zrgb, pixel_to_zrgb);
+
+    impl_from_surface!(Zrgb, u8, pixel_to_l8);
+    impl_from_surface!(Zrgb, [u8; 2], pixel_to_la8);
+    impl_from_surface!(Zrgb, f32, pixel_to_l32);
+    impl_from_surface!(Zrgb, [f32; 2], pixel_to_la32);
+    impl_from_surface!(Zrgb, [u8; 3], pixel_to_rgb8);
+    impl_from_surface!(Zrgb, [u8; 4], pixel_to_rgba8);
+}
+
 #[cfg(feature = "png")]
 #[cfg(test)]
 mod tests {

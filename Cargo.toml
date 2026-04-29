@@ -13,6 +13,7 @@ categories = ["game-development", "graphics", "rendering"]
 [dependencies]
 bytemuck = { version = "1.25.0", optional = true }
 png =  { version = "0.18.1", optional = true }
+rand = { version = "0.10.1", optional = true, features = ["thread_rng"] }
 raw-window-handle = { version = "0.6.2", optional = true }
 serde = { version = "1", features = ["derive"], optional = true}
 softbuffer = { version = "0.4.8", optional = true }
@@ -22,6 +23,15 @@ thiserror = "2.0.18"
 blit = "0.8.5"
 criterion = "0.8.2"
 sdl2 = "0.38.0"
+
+[features]
+default = ["std"]
+dissolve = ["dep:rand", "std"]
+bytes = ["dep:bytemuck", "std"]
+png = ["bytes", "dep:png", "std"]
+serde = ["dep:serde"]
+softbuffer = ["dep:bytemuck", "dep:raw-window-handle", "dep:softbuffer", "std"]
+std = []
 
 [[bench]]
 name = "convert"
@@ -37,14 +47,6 @@ required-features = ["std"]
 name = "mask"
 harness = false
 required-features = ["std"]
-
-[features]
-default = ["std"]
-bytes = ["dep:bytemuck"]
-png = ["bytes", "dep:png"]
-serde = ["dep:serde"]
-softbuffer = ["dep:bytemuck", "dep:raw-window-handle", "dep:softbuffer", "std"]
-std = []
 
 [package.metadata.docs.rs]
 all-features = true
