@@ -33,7 +33,7 @@ impl<'s, S: AsRef<[P]> + AsMut<[P]>, P: Copy + Clone + Sized + Default + Eq + Pa
         }
         #[cfg(not(feature = "std"))]
         {
-            self.mask_color = mask_color;
+            self.blitter = MaskBlitter::new(mask_color);
             Ok(())
         }
     }

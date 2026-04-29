@@ -66,29 +66,39 @@ impl<'s, S: AsRef<[[f32; 4]]> + AsMut<[[f32; 4]]>> BlendableSurface<'s, S> {
 
     /// Set the blend mode and alpha (0-1). Returns an error if the surface is locked.
     pub fn set_blend_mode(&mut self, blend_mode: BlendMode, alpha: f32) -> Result<(), Error> {
+        #[cfg(feature = "std")]
         if self.is_locked() {
             Err(Error::Locked)
         } else {
-            let f = match &blend_mode {
-                BlendMode::Normal => Self::normal,
-                BlendMode::Multiply => Self::multiply,
-                BlendMode::Screen => Self::screen,
-                BlendMode::Overlay => Self::overlay,
-                BlendMode::HardLight => Self::hard_light,
-                BlendMode::SoftLight => Self::soft_light,
-                BlendMode::Dodge => Self::dodge,
-                BlendMode::Burn => Self::burn,
-                BlendMode::VividLight => Self::vivid_light,
-                BlendMode::Divide => Self::divide,
-                BlendMode::Add => Self::add,
-                BlendMode::Subtract => Self::subtract,
-                BlendMode::Difference => Self::difference,
-                BlendMode::LightenOnly => Self::lighten_only,
-                BlendMode::DarkenOnly => Self::darken_only,
-            };
-            self.blitter = Blender::new(f, alpha);
+            self.set_blend_mode_inner(blend_mode, alpha);
             Ok(())
         }
+        #[cfg(not(feature = "std"))]
+        {
+            self.set_blend_mode_inner(blend_mode, alpha);
+            Ok(())
+        }
+    }
+
+    fn set_blend_mode_inner(&mut self, blend_mode: BlendMode, alpha: f32) {
+        let f = match &blend_mode {
+            BlendMode::Normal => Self::normal,
+            BlendMode::Multiply => Self::multiply,
+            BlendMode::Screen => Self::screen,
+            BlendMode::Overlay => Self::overlay,
+            BlendMode::HardLight => Self::hard_light,
+            BlendMode::SoftLight => Self::soft_light,
+            BlendMode::Dodge => Self::dodge,
+            BlendMode::Burn => Self::burn,
+            BlendMode::VividLight => Self::vivid_light,
+            BlendMode::Divide => Self::divide,
+            BlendMode::Add => Self::add,
+            BlendMode::Subtract => Self::subtract,
+            BlendMode::Difference => Self::difference,
+            BlendMode::LightenOnly => Self::lighten_only,
+            BlendMode::DarkenOnly => Self::darken_only,
+        };
+        self.blitter = Blender::new(f, alpha);
     }
 
     const fn normal(top: Pixel, bottom: &mut Pixel) {

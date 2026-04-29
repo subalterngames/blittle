@@ -1,16 +1,18 @@
 pub(crate) mod blitter;
+#[cfg(feature = "std")]
 mod indices;
 
 use crate::error::Error;
 use crate::{RectU, Surface};
 use blitter::PixelBlitter;
+#[cfg(feature = "std")]
 pub(crate) use indices::LockedIndices;
 
 pub struct LockableSurface<
     's,
     S: AsRef<[P]> + AsMut<[P]>,
     P: Copy + Clone + Sized + Default,
-    #[cfg(feature = "std")] L: PixelBlitter<P>,
+    L: PixelBlitter<P>,
 > {
     pub(crate) surface: Surface<'s, S, P>,
     pub(crate) blitter: L,
@@ -18,12 +20,8 @@ pub struct LockableSurface<
     pub(crate) mask: Option<Vec<LockedIndices>>,
 }
 
-impl<
-    's,
-    S: AsRef<[P]> + AsMut<[P]>,
-    P: Copy + Clone + Sized + Default,
-    #[cfg(feature = "std")] L: PixelBlitter<P>,
-> LockableSurface<'s, S, P, L>
+impl<'s, S: AsRef<[P]> + AsMut<[P]>, P: Copy + Clone + Sized + Default, L: PixelBlitter<P>>
+    LockableSurface<'s, S, P, L>
 {
     /// Lock the surface, optimizing blit speed while preventing pixel manipulation.
     #[cfg(feature = "std")]
@@ -128,6 +126,7 @@ impl<
         Ok(())
     }
 
+    #[cfg(feature = "std")]
     fn blit_locked<B: AsRef<[P]> + AsMut<[P]>>(
         &self,
         mask: &[LockedIndices],
