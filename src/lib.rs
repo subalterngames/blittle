@@ -6,6 +6,7 @@ mod blend;
 mod convert;
 mod error;
 mod lock;
+mod mask;
 #[cfg(feature = "png")]
 pub mod png;
 mod position;
@@ -14,7 +15,6 @@ mod rect;
 pub mod sb;
 mod size;
 mod surface;
-mod mask;
 
 pub use blend::*;
 pub use convert::PixelConverter;

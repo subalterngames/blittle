@@ -1,20 +1,19 @@
+pub(crate) mod blitter;
 mod indices;
-pub(crate) mod locker;
 
 use crate::error::Error;
 use crate::{RectU, Surface};
+use blitter::PixelBlitter;
 pub(crate) use indices::LockedIndices;
-use locker::PixelLocker;
 
 pub struct LockableSurface<
     's,
     S: AsRef<[P]> + AsMut<[P]>,
     P: Copy + Clone + Sized + Default,
-    #[cfg(feature = "std")]
-    L: PixelLocker<P>
+    #[cfg(feature = "std")] L: PixelBlitter<P>,
 > {
     pub(crate) surface: Surface<'s, S, P>,
-    pub(crate) locker: L,
+    pub(crate) blitter: L,
     #[cfg(feature = "std")]
     pub(crate) mask: Option<Vec<LockedIndices>>,
 }
@@ -23,9 +22,9 @@ impl<
     's,
     S: AsRef<[P]> + AsMut<[P]>,
     P: Copy + Clone + Sized + Default + Eq + PartialEq,
-    #[cfg(feature = "std")]
-    L: PixelLocker<P>
-> LockableSurface<'s, S, P, L> {
+    #[cfg(feature = "std")] L: PixelBlitter<P>,
+> LockableSurface<'s, S, P, L>
+{
     /// Lock the surface, optimizing blit speed while preventing pixel manipulation.
     #[cfg(feature = "std")]
     pub fn lock(&mut self) {
@@ -50,17 +49,19 @@ impl<
                 let i1 = self.surface.get_index(x1, y);
                 if self.surface.buffer.as_ref()[i0..i1]
                     .iter()
-                    .all(|p| self.locker.should_blit_pixel(p))
+                    .all(|p| self.blitter.should_blit_pixel(p))
                 {
                     // Remember the entire row.
                     mask.push(LockedIndices::Row { start: i0, end: i1 })
                 } else {
                     // Remember each unmasked pixel.
                     mask.extend((i0..i1).filter_map(|i| {
-                        if self.locker.should_blit_pixel(&self.surface.buffer.as_ref()[i]) {
+                        if self
+                            .blitter
+                            .should_blit_pixel(&self.surface.buffer.as_ref()[i])
+                        {
                             Some(LockedIndices::Pixel(i))
-                        }
-                        else {
+                        } else {
                             None
                         }
                     }))
@@ -102,5 +103,78 @@ impl<
         }
         #[cfg(not(feature = "std"))]
         Ok(&mut self.surface)
+    }
+
+    /// Blit onto `other`, using a mask.
+    ///
+    /// This can be called if this masked surface is unlocked, but it'll be slower.
+    pub fn blit<B: AsRef<[P]> + AsMut<[P]>>(
+        &self,
+        other: &mut Surface<'s, B, P>,
+    ) -> Result<(), Error> {
+        let (destination_rect, blit_area) = self.surface.get_blit_params(other.size)?;
+        let dst_offset = other.get_index(destination_rect.position.x, destination_rect.position.y);
+        #[cfg(feature = "std")]
+        match self.mask.as_ref() {
+            Some(mask) => {
+                self.blit_locked(mask, dst_offset, other);
+            }
+            None => {
+                self.blit_unlocked(blit_area, dst_offset, other);
+            }
+        }
+        #[cfg(not(feature = "std"))]
+        self.blit_unlocked(blit_area, dst_offset, other);
+        Ok(())
+    }
+
+    fn blit_locked<B: AsRef<[P]> + AsMut<[P]>>(
+        &self,
+        mask: &[LockedIndices],
+        dst_offset: usize,
+        other: &mut Surface<'_, B, P>,
+    ) {
+        mask.iter().for_each(|m| match m {
+            LockedIndices::Pixel(i) => {
+                let i = *i;
+                self.blitter.blit_pixel(
+                    self.surface.buffer.as_ref()[i],
+                    &mut other.buffer_mut()[dst_offset + i],
+                )
+            }
+            LockedIndices::Row { start, end } => {
+                let i0 = *start;
+                let i1 = *end;
+                self.blitter.blit_row::<B>(
+                    &self.surface.buffer.as_ref()[i0..i1],
+                    &mut other.buffer.as_mut()[dst_offset + i0..dst_offset + i1],
+                );
+            }
+        });
+    }
+
+    fn blit_unlocked<B: AsRef<[P]> + AsMut<[P]>>(
+        &self,
+        blit_area: RectU,
+        dst_offset: usize,
+        other: &mut Surface<'_, B, P>,
+    ) {
+        // Iterate per-pixel.
+        let len = blit_area.size.width * blit_area.size.height;
+        let src_offset = self
+            .surface
+            .get_index(blit_area.position.x, blit_area.position.y);
+        for i in 0..len {
+            let src_index = src_offset + i;
+            if self
+                .blitter
+                .should_blit_pixel(&self.surface.buffer.as_ref()[src_index])
+            {
+                self.blitter.blit_pixel(
+                    self.surface.buffer.as_ref()[src_index],
+                    &mut other.buffer_mut()[dst_offset + i],
+                )
+            }
+        }
     }
 }
