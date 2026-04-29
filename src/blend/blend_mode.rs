@@ -1,6 +1,6 @@
+use crate::blend::{EPSILON_0, EPSILON_255};
 use rand::RngExt;
 use rand::prelude::ThreadRng;
-use crate::blend::{EPSILON_0, EPSILON_255};
 
 macro_rules! arithmetic {
     ($f:ident, $op:tt) => {
@@ -25,17 +25,17 @@ macro_rules! arithmetic_clamp {
 macro_rules! light_dark {
     ($f:ident, $e:ident) => {
         pub const fn $f(top: &Pixel, bottom: &mut Pixel) {
-        bottom[0] = bottom[0].$e(top[0]);
-        bottom[1] = bottom[1].$e(top[1]);
-        bottom[2] = bottom[2].$e(top[2]);
-    }
+            bottom[0] = bottom[0].$e(top[0]);
+            bottom[1] = bottom[1].$e(top[1]);
+            bottom[2] = bottom[2].$e(top[2]);
+        }
     };
 }
 
 type Pixel = [f32; 4];
 
 /// Standard color blend modes.
-/// 
+///
 /// Source for most of the math: <https://en.wikipedia.org/wiki/Blend_modes>
 pub enum BlendMode {
     Normal,
