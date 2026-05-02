@@ -4,7 +4,7 @@ mod blender;
 use crate::blend::blender::Blender;
 use crate::lock::LockableSurface;
 use crate::lock::blitter::PixelBlitter;
-use crate::{PositionI, Rgba32Surface, Surface};
+use crate::{Rgba32Surface, Surface};
 pub use blend_mode::BlendMode;
 
 type Pixel = [f32; 4];
@@ -252,12 +252,12 @@ mod tests {
         top_blendable
             .surface_mut()
             .unwrap()
-            .set_position(PositionI::ZERO, &bottom)
+            .set_position(PositionI::new(100, 50), &bottom)
             .unwrap();
-        top_blendable.set_blend_mode(BlendMode::Burn, 0.5);
+        top_blendable.set_blend_mode(BlendMode::Normal, 0.5);
+        top_blendable.lock();
         top_blendable.blit(&mut bottom).unwrap();
-        let finished = BlendableSurface::new(bottom).finish_blending();
 
-        Rgba8Surface::write_png(&Rgba8Surface::from(&finished), "test_output/overlay.png").unwrap();
+        Rgba8Surface::write_png(&Rgba8Surface::from(&bottom), "test_output/overlay.png").unwrap();
     }
 }
