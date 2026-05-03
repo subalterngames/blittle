@@ -47,10 +47,9 @@ pub fn criterion_benchmark(c: &mut Criterion) {
         group.bench_function(id, |b| {
             b.iter_custom(|iters| {
                 let mut dst = dst.clone();
-                src.set_blend_mode(blend_mode, 0.5);
                 let t = Instant::now();
                 for _ in 0..iters {
-                    src.blit(&mut dst).unwrap();
+                    src.blend(blend_mode, 0.5, &mut dst).unwrap();
                 }
                 t.elapsed()
             })

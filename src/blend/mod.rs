@@ -1,12 +1,21 @@
 mod blend_mode;
-mod blender;
 
-use crate::Surface;
-use crate::blend::blender::Blender;
-use crate::lock::LockableSurface;
+#[cfg(feature = "std")]
+use crate::lock::get_dst_index;
+use crate::lock::get_indices;
+use crate::{Error, RectU, Surface};
 pub use blend_mode::BlendMode;
 
+/// A hacky optimization.
+/// We assume that we're converting to and from pixels with 8-bit channels.
+/// So, this value is 254. / 255.
+/// This will (hopefully!) help with floating point precision.
+const EPSILON_255: f32 = 0.9960784;
+/// Likewise, this is 1. / 255.
+const EPSILON_0: f32 = 0.0039216;
+
 type Pixel = [f32; 4];
+type BlendFunction = fn(top: &[f32; 4], bottom: &[f32; 4]) -> Rgb;
 
 macro_rules! blend_mode_per_pixel {
     ($f:ident, $c:expr) => {
@@ -61,28 +70,153 @@ impl Rgb {
     }
 }
 
-/// A surface that allows you to blend pixels rather than copying them onto each other.
-///
-/// A BlendableSurface can be locked or unlocked.
-/// If locked, the surface can't be mutated, but blending will be faster.
-pub type BlendableSurface<'s, S> = LockableSurface<'s, S, [f32; 4], Blender>;
 /// A blendable surface backed by a vec.
 #[cfg(feature = "std")]
 pub type BlendableSurfaceVec<'s> = BlendableSurface<'s, Vec<Pixel>>;
 
-impl<'s, S: AsRef<[[f32; 4]]> + AsMut<[[f32; 4]]>> BlendableSurface<'s, S> {
-    pub fn new(surface: Surface<'s, S, [f32; 4]>) -> Self {
+/// A surface that allows you to blend pixels rather than copying them onto each other.
+///
+/// A BlendableSurface can be locked or unlocked.
+/// If locked, the surface can't be mutated, but blending will be faster.
+pub struct BlendableSurface<'s, S: AsRef<[Pixel]> + AsMut<[Pixel]>> {
+    surface: Surface<'s, S, Pixel>,
+    #[cfg(feature = "std")]
+    indices: Option<Vec<usize>>,
+}
+
+impl<'s, S: AsRef<[Pixel]> + AsMut<[Pixel]>> BlendableSurface<'s, S> {
+    pub fn new(surface: Surface<'s, S, Pixel>) -> Self {
         Self {
             surface,
-            blitter: Blender::new(Self::normal, 1.),
             #[cfg(feature = "std")]
-            mask: None,
+            indices: None,
         }
     }
 
-    /// Set the blend mode and alpha transparency for this surface (0-1).
-    pub const fn set_blend_mode(&mut self, blend_mode: BlendMode, alpha: f32) {
-        let f = match &blend_mode {
+    /// Returns a mutable reference of the surface.
+    /// Returns an error if the masked surface is locked.
+    pub const fn surface_mut(&mut self) -> Result<&mut Surface<'s, S, Pixel>, Error> {
+        #[cfg(feature = "std")]
+        if self.is_locked() {
+            Err(Error::Locked)
+        } else {
+            Ok(&mut self.surface)
+        }
+        #[cfg(not(feature = "std"))]
+        Ok(&mut self.surface)
+    }
+
+    /// Blend into `other` using the `blend_mode` and an `alpha` transparency value (0-1).
+    ///
+    /// This can be called if this masked surface is unlocked, but it'll be slower.
+    pub fn blend<B: AsRef<[Pixel]> + AsMut<[Pixel]>>(
+        &self,
+        blend_mode: BlendMode,
+        alpha: f32,
+        other: &mut Surface<'s, B, Pixel>,
+    ) -> Result<(), Error> {
+        let (destination_rect, blit_area) = self.surface.get_blit_params(other.size)?;
+
+        let f = Self::get_blend_function(blend_mode);
+        #[cfg(feature = "std")]
+        match self.indices.as_ref() {
+            Some(mask) => {
+                self.blend_locked(f, alpha, destination_rect, mask, other);
+            }
+            None => {
+                self.blend_unlocked(f, alpha, destination_rect, blit_area, other);
+            }
+        }
+        #[cfg(not(feature = "std"))]
+        self.blend_unlocked(f, alpha, destination_rect, blit_area, other);
+        Ok(())
+    }
+
+    /// Lock the surface, optimizing blit speed while preventing pixel manipulation.
+    #[cfg(feature = "std")]
+    pub fn lock(&mut self) {
+        if self.is_locked() {
+            return;
+        }
+
+        self.indices = Some(
+            self.surface
+                .buffer()
+                .iter()
+                .enumerate()
+                .filter_map(|(i, p)| if p[3] >= EPSILON_0 { Some(i) } else { None })
+                .collect(),
+        );
+    }
+
+    /// Returns true if the surface is locked.
+    #[cfg(feature = "std")]
+    pub const fn is_locked(&self) -> bool {
+        self.indices.is_some()
+    }
+
+    /// Unlock the surface.
+    /// Blit speed will be unoptimized while pixel manipulation will be permitted.
+    #[cfg(feature = "std")]
+    pub fn unlock(&mut self) {
+        self.indices = None;
+    }
+
+    #[cfg(feature = "std")]
+    fn blend_locked<B: AsRef<[Pixel]> + AsMut<[Pixel]>>(
+        &self,
+        f: BlendFunction,
+        alpha: f32,
+        destination_rect: RectU,
+        mask: &[usize],
+        other: &mut Surface<'_, B, Pixel>,
+    ) {
+        let dst_len = other.buffer().len();
+        mask.iter().for_each(|i| {
+            let i = *i;
+            if let Some(dst_index) =
+                get_dst_index(i, &destination_rect, dst_len, &self.surface, other)
+            {
+                Self::blend_pixel(
+                    f,
+                    alpha,
+                    self.surface.buffer.as_ref()[i],
+                    &mut other.buffer_mut()[dst_index],
+                );
+            }
+        });
+    }
+
+    fn blend_unlocked<B: AsRef<[Pixel]> + AsMut<[Pixel]>>(
+        &self,
+        f: BlendFunction,
+        alpha: f32,
+        destination_rect: RectU,
+        blit_area: RectU,
+        other: &mut Surface<'_, B, Pixel>,
+    ) {
+        if alpha < EPSILON_0 {
+            return;
+        }
+        (0..blit_area.size.height).for_each(|y| {
+            (0..blit_area.size.width).for_each(|x| {
+                let (src_index, dst_index) =
+                    get_indices(x, y, &destination_rect, &blit_area, &self.surface, other);
+                let p = self.surface.buffer.as_ref()[src_index];
+                if p[3] >= EPSILON_0 {
+                    Self::blend_pixel(
+                        f,
+                        alpha,
+                        self.surface.buffer.as_ref()[src_index],
+                        &mut other.buffer_mut()[dst_index],
+                    );
+                }
+            })
+        });
+    }
+
+    const fn get_blend_function(blend_mode: BlendMode) -> BlendFunction {
+        match &blend_mode {
             BlendMode::Normal => Self::normal,
             BlendMode::Multiply => Self::multiply,
             BlendMode::Screen => Self::screen,
@@ -98,8 +232,28 @@ impl<'s, S: AsRef<[[f32; 4]]> + AsMut<[[f32; 4]]>> BlendableSurface<'s, S> {
             BlendMode::Difference => Self::difference,
             BlendMode::LightenOnly => Self::lighten_only,
             BlendMode::DarkenOnly => Self::darken_only,
-        };
-        self.blitter = Blender::new(f, alpha);
+        }
+    }
+
+    fn blend_pixel(f: BlendFunction, alpha: f32, top: [f32; 4], bottom: &mut [f32; 4]) {
+        const fn lerp(a: f32, b: f32, t: f32) -> f32 {
+            a + t * (b - a)
+        }
+
+        let a = top[3];
+        // Blend.
+        let rgb = f(&top, bottom);
+        // Blend with composited alpha.
+        let ca = (a + bottom[3] * (1. - a)) * alpha;
+        if ca >= EPSILON_255 {
+            bottom[0] = rgb.r;
+            bottom[1] = rgb.g;
+            bottom[2] = rgb.b;
+        } else {
+            bottom[0] = lerp(bottom[0], rgb.r, ca);
+            bottom[1] = lerp(bottom[1], rgb.g, ca);
+            bottom[2] = lerp(bottom[2], rgb.b, ca);
+        }
     }
 
     const fn normal(top: &Pixel, bottom: &Pixel) -> Rgb {
@@ -264,9 +418,10 @@ mod tests {
             .unwrap()
             .set_position(PositionI::new(100, 50), &bottom)
             .unwrap();
-        top_blendable.set_blend_mode(BlendMode::Overlay, 0.5);
         top_blendable.lock();
-        top_blendable.blit(&mut bottom).unwrap();
+        top_blendable
+            .blend(BlendMode::Overlay, 0.5, &mut bottom)
+            .unwrap();
 
         Rgba8Surface::write_png(&Rgba8Surface::from(&bottom), "test_output/overlay.png").unwrap();
     }
