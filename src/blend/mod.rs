@@ -12,9 +12,7 @@ type Pixel = [f32; 4];
 macro_rules! blend_mode_per_pixel {
     ($f:ident, $c:expr) => {
         const fn $f(top: &Pixel, bottom: &Pixel) -> Rgb {
-            Rgb::new($c(top, bottom, 0),
-            $c(top, bottom, 1),
-            $c(top, bottom, 2),)
+            Rgb::new($c(top, bottom, 0), $c(top, bottom, 1), $c(top, bottom, 2))
         }
     };
 }
@@ -42,9 +40,11 @@ macro_rules! arithmetic_clamp {
 macro_rules! light_dark {
     ($f:ident, $e:ident) => {
         const fn $f(top: &Pixel, bottom: &Pixel) -> Rgb {
-            Rgb::new(bottom[0].$e(top[0]),
-            bottom[1].$e(top[1]),
-            bottom[2].$e(top[2]),)
+            Rgb::new(
+                bottom[0].$e(top[0]),
+                bottom[1].$e(top[1]),
+                bottom[2].$e(top[2]),
+            )
         }
     };
 }
@@ -53,17 +53,12 @@ pub struct Rgb {
     r: f32,
     g: f32,
     b: f32,
-    _a: f32
+    _a: f32,
 }
 
 impl Rgb {
     pub const fn new(r: f32, g: f32, b: f32) -> Self {
-        Self {
-            r,
-            g,
-            b,
-            _a: 0.
-        }
+        Self { r, g, b, _a: 0. }
     }
 }
 
@@ -124,7 +119,11 @@ impl<'s, S: AsRef<[[f32; 4]]> + AsMut<[[f32; 4]]>> BlendableSurface<'s, S> {
         }
         // Source: https://en.wikipedia.org/wiki/Alpha_compositing
         let a = top[3];
-        Rgb::new(composite(top, bottom, a, 0), composite(top, bottom, a, 1), composite(top, bottom, a, 2))
+        Rgb::new(
+            composite(top, bottom, a, 0),
+            composite(top, bottom, a, 1),
+            composite(top, bottom, a, 2),
+        )
     }
 
     arithmetic!(multiply, *);
@@ -169,21 +168,23 @@ impl<'s, S: AsRef<[[f32; 4]]> + AsMut<[[f32; 4]]>> BlendableSurface<'s, S> {
         } else {
             less_than_half
         };
-        Rgb::new(f(top, bottom, 0),
-        f(top, bottom, 1),
-        f(top, bottom, 2),)
+        Rgb::new(f(top, bottom, 0), f(top, bottom, 1), f(top, bottom, 2))
     }
 
-    const fn dodge(top: &Pixel, bottom: &Pixel) -> Rgb{
-        Rgb::new(Self::get_dodge(top, bottom, 0),
-       Self::get_dodge(top, bottom, 1),
-        Self::get_dodge(top, bottom, 2),)
+    const fn dodge(top: &Pixel, bottom: &Pixel) -> Rgb {
+        Rgb::new(
+            Self::get_dodge(top, bottom, 0),
+            Self::get_dodge(top, bottom, 1),
+            Self::get_dodge(top, bottom, 2),
+        )
     }
 
     const fn burn(top: &Pixel, bottom: &Pixel) -> Rgb {
-        Rgb::new(Self::get_dodge(bottom, top, 0),
-         Self::get_dodge(bottom, top, 1),
-         Self::get_dodge(bottom, top, 2),)
+        Rgb::new(
+            Self::get_dodge(bottom, top, 0),
+            Self::get_dodge(bottom, top, 1),
+            Self::get_dodge(bottom, top, 2),
+        )
     }
 
     const fn vivid_light(top: &Pixel, bottom: &Pixel) -> Rgb {
@@ -222,9 +223,11 @@ impl<'s, S: AsRef<[[f32; 4]]> + AsMut<[[f32; 4]]>> BlendableSurface<'s, S> {
             (2. * top[i] * bottom[i]).clamp(0., 1.)
         }
 
-        Rgb::new(ttb(top, bottom, 0),
-        ttb(top, bottom, 1),
-        ttb(top, bottom, 2),)
+        Rgb::new(
+            ttb(top, bottom, 0),
+            ttb(top, bottom, 1),
+            ttb(top, bottom, 2),
+        )
     }
 
     const fn overlay_inner(top: &Pixel, bottom: &Pixel, lum: f32) -> Rgb {
@@ -235,9 +238,11 @@ impl<'s, S: AsRef<[[f32; 4]]> + AsMut<[[f32; 4]]>> BlendableSurface<'s, S> {
         if lum < 0.5 {
             Self::multiply_two(top, bottom)
         } else {
-            Rgb::new(over(top, bottom, 0),
-            over(top, bottom, 1),
-            over(top, bottom, 2),)
+            Rgb::new(
+                over(top, bottom, 0),
+                over(top, bottom, 1),
+                over(top, bottom, 2),
+            )
         }
     }
 
@@ -270,7 +275,7 @@ mod tests {
             .unwrap()
             .set_position(PositionI::new(100, 50), &bottom)
             .unwrap();
-        top_blendable.set_blend_mode(BlendMode::Overlay, 0.1);
+        top_blendable.set_blend_mode(BlendMode::Overlay, 0.5);
         top_blendable.lock();
         top_blendable.blit(&mut bottom).unwrap();
 

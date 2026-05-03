@@ -40,12 +40,7 @@ impl PixelBlitter<[f32; 4]> for Blender {
 
     fn blit_pixel(&self, top: [f32; 4], bottom: &mut [f32; 4]) {
         const fn lerp(a: f32, b: f32, t: f32) -> f32 {
-            if b > a {
-                a + t * (b - a)
-            }
-            else {
-                b + t * (b - a)
-            }
+            a + t * (b - a)
         }
 
         let a = top[3];
@@ -58,11 +53,10 @@ impl PixelBlitter<[f32; 4]> for Blender {
                 bottom[0] = rgb.r;
                 bottom[1] = rgb.g;
                 bottom[2] = rgb.b;
-            }
-            else {
-                bottom[0] = lerp(top[0], rgb.r, ca);
-                bottom[1] = lerp(top[1], rgb.g, ca);
-                bottom[2] = lerp(top[2], rgb.b, ca);
+            } else {
+                bottom[0] = lerp(bottom[0], rgb.r, ca);
+                bottom[1] = lerp(bottom[1], rgb.g, ca);
+                bottom[2] = lerp(bottom[2], rgb.b, ca);
             }
         }
     }
