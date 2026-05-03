@@ -52,12 +52,11 @@ pub struct Rgb {
     r: f32,
     g: f32,
     b: f32,
-    _a: f32,
 }
 
 impl Rgb {
     pub const fn new(r: f32, g: f32, b: f32) -> Self {
-        Self { r, g, b, _a: 0. }
+        Self { r, g, b }
     }
 }
 
