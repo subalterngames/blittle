@@ -32,6 +32,11 @@ softbuffer = ["dep:bytemuck", "dep:raw-window-handle", "dep:softbuffer", "std"]
 std = []
 
 [[bench]]
+name = "blend"
+harness = false
+required-features = ["png"]
+
+[[bench]]
 name = "convert"
 harness = false
 required-features = ["std"]

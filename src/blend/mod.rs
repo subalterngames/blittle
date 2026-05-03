@@ -1,10 +1,9 @@
 mod blend_mode;
 mod blender;
 
+use crate::Surface;
 use crate::blend::blender::Blender;
 use crate::lock::LockableSurface;
-use crate::lock::blitter::PixelBlitter;
-use crate::{Rgba32Surface, Surface};
 pub use blend_mode::BlendMode;
 
 type Pixel = [f32; 4];
@@ -67,6 +66,8 @@ impl Rgb {
 /// A BlendableSurface can be locked or unlocked.
 /// If locked, the surface can't be mutated, but blending will be faster.
 pub type BlendableSurface<'s, S> = LockableSurface<'s, S, [f32; 4], Blender>;
+/// A blendable surface backed by a vec.
+pub type BlendableSurfaceVec<'s> = BlendableSurface<'s, Vec<Pixel>>;
 
 impl<'s, S: AsRef<[[f32; 4]]> + AsMut<[[f32; 4]]>> BlendableSurface<'s, S> {
     pub fn new(surface: Surface<'s, S, [f32; 4]>) -> Self {
@@ -100,19 +101,6 @@ impl<'s, S: AsRef<[[f32; 4]]> + AsMut<[[f32; 4]]>> BlendableSurface<'s, S> {
         self.blitter = Blender::new(f, alpha);
     }
 
-    pub fn finish_blending(&self) -> Rgba32Surface<'s> {
-        let mut bottom = Rgba32Surface::new_filled(self.surface.size, [1.; 4]);
-        let blender = Blender::new(Self::normal, 1.);
-        self.surface
-            .buffer()
-            .iter()
-            .zip(bottom.buffer.iter_mut())
-            .for_each(|(top, bottom)| {
-                blender.blit_pixel(*top, bottom);
-            });
-        bottom
-    }
-
     const fn normal(top: &Pixel, bottom: &Pixel) -> Rgb {
         const fn composite(top: &Pixel, bottom: &Pixel, a: f32, i: usize) -> f32 {
             top[i] + bottom[i] * (1. - a)
@@ -134,7 +122,7 @@ impl<'s, S: AsRef<[[f32; 4]]> + AsMut<[[f32; 4]]>> BlendableSurface<'s, S> {
     blend_mode_per_pixel!(screen, Self::screen_channel);
 
     const fn overlay(top: &Pixel, bottom: &Pixel) -> Rgb {
-        Self::overlay_inner(&top, bottom, Self::luminance(bottom))
+        Self::overlay_inner(top, bottom, Self::luminance(bottom))
     }
 
     const fn hard_light(top: &Pixel, bottom: &Pixel) -> Rgb {
@@ -160,7 +148,7 @@ impl<'s, S: AsRef<[[f32; 4]]> + AsMut<[[f32; 4]]>> BlendableSurface<'s, S> {
             2. * a * (1. - b) + a.sqrt() * (2. * b - 1.)
         }
 
-        let lum = Self::luminance(&top);
+        let lum = Self::luminance(top);
         let f = if lum < 0.5 {
             greater_than_half
         } else if lum == 0.5 {
