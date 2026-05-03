@@ -58,6 +58,7 @@ pub use type_aliases::*;
 ///
 /// let _ = Surface::<'_, Vec<[u8; 4]>, [u8; 4]>::new(Size::new(512, 512));
 /// ```
+#[derive(Clone)]
 pub struct Surface<'s, S: AsRef<[P]> + AsMut<[P]>, P: Copy + Clone + Sized + Default> {
     pub(crate) size: Size,
     pub(crate) buffer: S,

@@ -11,42 +11,60 @@ type Pixel = [f32; 4];
 
 macro_rules! blend_mode_per_pixel {
     ($f:ident, $c:expr) => {
-        const fn $f(top: Pixel, bottom: &mut Pixel) {
-            $c(&top, bottom, 0);
-            $c(&top, bottom, 1);
-            $c(&top, bottom, 2);
+        const fn $f(top: &Pixel, bottom: &Pixel) -> Rgb {
+            Rgb::new($c(top, bottom, 0),
+            $c(top, bottom, 1),
+            $c(top, bottom, 2),)
         }
     };
 }
 
 macro_rules! arithmetic {
     ($f:ident, $op:tt) => {
-        const fn $f(top: Pixel, bottom: &mut Pixel) {
-            bottom[0] $op top[0];
-            bottom[1] $op top[1];
-            bottom[2] $op top[2];
+        const fn $f(top: &Pixel, bottom: &Pixel) -> Rgb {
+            Rgb::new(bottom[0] $op top[0],
+            bottom[1] $op top[1],
+            bottom[2] $op top[2],)
         }
     };
 }
 
 macro_rules! arithmetic_clamp {
     ($f:ident, $op:tt) => {
-        const fn $f(top: Pixel, bottom: &mut Pixel) {
-            bottom[0] = (bottom[0] $op top[0]).clamp(0., 1.);
-            bottom[1] = (bottom[1] $op top[1]).clamp(0., 1.);
-            bottom[2] = (bottom[2] $op top[2]).clamp(0., 1.);
+        const fn $f(top: &Pixel, bottom: &Pixel) -> Rgb {
+            Rgb::new((bottom[0] $op top[0]).clamp(0., 1.),
+            (bottom[1] $op top[1]).clamp(0., 1.),
+            (bottom[2] $op top[2]).clamp(0., 1.),)
         }
     };
 }
 
 macro_rules! light_dark {
     ($f:ident, $e:ident) => {
-        const fn $f(top: Pixel, bottom: &mut Pixel) {
-            bottom[0] = bottom[0].$e(top[0]);
-            bottom[1] = bottom[1].$e(top[1]);
-            bottom[2] = bottom[2].$e(top[2]);
+        const fn $f(top: &Pixel, bottom: &Pixel) -> Rgb {
+            Rgb::new(bottom[0].$e(top[0]),
+            bottom[1].$e(top[1]),
+            bottom[2].$e(top[2]),)
         }
     };
+}
+
+pub struct Rgb {
+    r: f32,
+    g: f32,
+    b: f32,
+    _a: f32
+}
+
+impl Rgb {
+    pub const fn new(r: f32, g: f32, b: f32) -> Self {
+        Self {
+            r,
+            g,
+            b,
+            _a: 0.
+        }
+    }
 }
 
 /// A surface that allows you to blend pixels rather than copying them onto each other.
@@ -100,49 +118,47 @@ impl<'s, S: AsRef<[[f32; 4]]> + AsMut<[[f32; 4]]>> BlendableSurface<'s, S> {
         bottom
     }
 
-    const fn normal(top: Pixel, bottom: &mut Pixel) {
-        const fn composite(top: &Pixel, bottom: &mut Pixel, a: f32, i: usize) {
-            bottom[i] = top[i] + bottom[i] * (1. - a);
+    const fn normal(top: &Pixel, bottom: &Pixel) -> Rgb {
+        const fn composite(top: &Pixel, bottom: &Pixel, a: f32, i: usize) -> f32 {
+            top[i] + bottom[i] * (1. - a)
         }
         // Source: https://en.wikipedia.org/wiki/Alpha_compositing
         let a = top[3];
-        composite(&top, bottom, a, 0);
-        composite(&top, bottom, a, 1);
-        composite(&top, bottom, a, 2);
+        Rgb::new(composite(top, bottom, a, 0), composite(top, bottom, a, 1), composite(top, bottom, a, 2))
     }
 
-    arithmetic!(multiply, *=);
+    arithmetic!(multiply, *);
 
-    const fn screen_channel(top: &Pixel, bottom: &mut Pixel, i: usize) {
-        bottom[i] = 1. - (1. - bottom[i]) * (1. - top[i]);
+    const fn screen_channel(top: &Pixel, bottom: &Pixel, i: usize) -> f32 {
+        1. - (1. - bottom[i]) * (1. - top[i])
     }
     blend_mode_per_pixel!(screen, Self::screen_channel);
 
-    const fn overlay(top: Pixel, bottom: &mut Pixel) {
-        Self::overlay_inner(&top, bottom, Self::luminance(bottom));
+    const fn overlay(top: &Pixel, bottom: &Pixel) -> Rgb {
+        Self::overlay_inner(&top, bottom, Self::luminance(bottom))
     }
 
-    const fn hard_light(top: Pixel, bottom: &mut Pixel) {
-        Self::overlay_inner(&top, bottom, Self::luminance(&top));
+    const fn hard_light(top: &Pixel, bottom: &Pixel) -> Rgb {
+        Self::overlay_inner(top, bottom, Self::luminance(top))
     }
 
-    fn soft_light(top: Pixel, bottom: &mut Pixel) {
-        fn greater_than_half(top: &Pixel, bottom: &mut Pixel, i: usize) {
+    fn soft_light(top: &Pixel, bottom: &Pixel) -> Rgb {
+        fn greater_than_half(top: &Pixel, bottom: &Pixel, i: usize) -> f32 {
             let a = bottom[i];
             let b = top[i];
-            bottom[i] = 2. * a * b + (a * a) * (1. - 2. * b);
+            2. * a * b + (a * a) * (1. - 2. * b)
         }
 
-        fn half(top: &Pixel, bottom: &mut Pixel, i: usize) {
+        fn half(top: &Pixel, bottom: &Pixel, i: usize) -> f32 {
             let a = bottom[i];
             let b = top[i];
-            bottom[i] = (1. - 2. * b) * (a * a) + 2. * a * b
+            (1. - 2. * b) * (a * a) + 2. * a * b
         }
 
-        fn less_than_half(top: &Pixel, bottom: &mut Pixel, i: usize) {
+        fn less_than_half(top: &Pixel, bottom: &Pixel, i: usize) -> f32 {
             let a = bottom[i];
             let b = top[i];
-            bottom[i] = 2. * a * (1. - b) + a.sqrt() * (2. * b - 1.)
+            2. * a * (1. - b) + a.sqrt() * (2. * b - 1.)
         }
 
         let lum = Self::luminance(&top);
@@ -153,40 +169,40 @@ impl<'s, S: AsRef<[[f32; 4]]> + AsMut<[[f32; 4]]>> BlendableSurface<'s, S> {
         } else {
             less_than_half
         };
-        f(&top, bottom, 0);
-        f(&top, bottom, 1);
-        f(&top, bottom, 2);
+        Rgb::new(f(top, bottom, 0),
+        f(top, bottom, 1),
+        f(top, bottom, 2),)
     }
 
-    const fn dodge(top: Pixel, bottom: &mut Pixel) {
-        bottom[0] = Self::get_dodge(&top, bottom, 0);
-        bottom[1] = Self::get_dodge(&top, bottom, 1);
-        bottom[2] = Self::get_dodge(&top, bottom, 2);
+    const fn dodge(top: &Pixel, bottom: &Pixel) -> Rgb{
+        Rgb::new(Self::get_dodge(top, bottom, 0),
+       Self::get_dodge(top, bottom, 1),
+        Self::get_dodge(top, bottom, 2),)
     }
 
-    const fn burn(top: Pixel, bottom: &mut Pixel) {
-        bottom[0] = Self::get_dodge(bottom, &top, 0);
-        bottom[1] = Self::get_dodge(bottom, &top, 1);
-        bottom[2] = Self::get_dodge(bottom, &top, 2);
+    const fn burn(top: &Pixel, bottom: &Pixel) -> Rgb {
+        Rgb::new(Self::get_dodge(bottom, top, 0),
+         Self::get_dodge(bottom, top, 1),
+         Self::get_dodge(bottom, top, 2),)
     }
 
-    const fn vivid_light(top: Pixel, bottom: &mut Pixel) {
-        let lum = Self::luminance(&top);
+    const fn vivid_light(top: &Pixel, bottom: &Pixel) -> Rgb {
+        let lum = Self::luminance(top);
         if lum > 0.5 {
-            Self::dodge(top, bottom);
+            Self::dodge(top, bottom)
         } else {
-            Self::burn(top, bottom);
+            Self::burn(top, bottom)
         }
     }
 
-    arithmetic!(divide, /=);
+    arithmetic!(divide, /);
 
     arithmetic_clamp!(add, +);
 
     arithmetic_clamp!(subtract, -);
 
-    const fn difference_channel(top: &Pixel, bottom: &mut Pixel, i: usize) {
-        bottom[i] = (bottom[i] - top[i]).abs().clamp(0., 1.);
+    const fn difference_channel(top: &Pixel, bottom: &Pixel, i: usize) -> f32 {
+        (bottom[i] - top[i]).abs().clamp(0., 1.)
     }
     blend_mode_per_pixel!(difference, Self::difference_channel);
 
@@ -201,27 +217,27 @@ impl<'s, S: AsRef<[[f32; 4]]> + AsMut<[[f32; 4]]>> BlendableSurface<'s, S> {
         (max + min) * 0.5
     }
 
-    const fn multiply_two(top: &Pixel, bottom: &mut Pixel) {
-        const fn ttb(top: &Pixel, bottom: &mut Pixel, i: usize) {
-            bottom[i] = (2. * top[i] * bottom[i]).clamp(0., 1.)
+    const fn multiply_two(top: &Pixel, bottom: &Pixel) -> Rgb {
+        const fn ttb(top: &Pixel, bottom: &Pixel, i: usize) -> f32 {
+            (2. * top[i] * bottom[i]).clamp(0., 1.)
         }
 
-        ttb(top, bottom, 0);
-        ttb(top, bottom, 1);
-        ttb(top, bottom, 2);
+        Rgb::new(ttb(top, bottom, 0),
+        ttb(top, bottom, 1),
+        ttb(top, bottom, 2),)
     }
 
-    const fn overlay_inner(top: &Pixel, bottom: &mut Pixel, lum: f32) {
-        const fn over(top: &Pixel, bottom: &mut Pixel, i: usize) {
-            bottom[i] = 1. - 2. * (1. - bottom[i]) * (1. - top[i]).clamp(0., 1.);
+    const fn overlay_inner(top: &Pixel, bottom: &Pixel, lum: f32) -> Rgb {
+        const fn over(top: &Pixel, bottom: &Pixel, i: usize) -> f32 {
+            1. - 2. * (1. - bottom[i]) * (1. - top[i]).clamp(0., 1.)
         }
 
         if lum < 0.5 {
-            Self::multiply_two(top, bottom);
+            Self::multiply_two(top, bottom)
         } else {
-            over(top, bottom, 0);
-            over(top, bottom, 1);
-            over(top, bottom, 2);
+            Rgb::new(over(top, bottom, 0),
+            over(top, bottom, 1),
+            over(top, bottom, 2),)
         }
     }
 
@@ -254,7 +270,7 @@ mod tests {
             .unwrap()
             .set_position(PositionI::new(100, 50), &bottom)
             .unwrap();
-        top_blendable.set_blend_mode(BlendMode::Normal, 0.5);
+        top_blendable.set_blend_mode(BlendMode::Overlay, 0.1);
         top_blendable.lock();
         top_blendable.blit(&mut bottom).unwrap();
 
