@@ -112,7 +112,7 @@ impl<'s, S: AsRef<[P]> + AsMut<[P]>, P: Copy + Clone + Sized + Default, L: Pixel
             }
         }
         #[cfg(not(feature = "std"))]
-        self.blit_unlocked(blit_area, dst_offset, other);
+        self.blit_unlocked(destination_rect, blit_area, other);
         Ok(())
     }
 
@@ -200,6 +200,7 @@ impl<'s, S: AsRef<[P]> + AsMut<[P]>, P: Copy + Clone + Sized + Default, L: Pixel
         (src_index, dst_index)
     }
 
+    #[cfg(feature = "std")]
     const fn get_dst_index<B: AsRef<[P]> + AsMut<[P]>>(
         &self,
         i: usize,

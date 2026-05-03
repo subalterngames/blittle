@@ -67,6 +67,7 @@ impl Rgb {
 /// If locked, the surface can't be mutated, but blending will be faster.
 pub type BlendableSurface<'s, S> = LockableSurface<'s, S, [f32; 4], Blender>;
 /// A blendable surface backed by a vec.
+#[cfg(feature = "std")]
 pub type BlendableSurfaceVec<'s> = BlendableSurface<'s, Vec<Pixel>>;
 
 impl<'s, S: AsRef<[[f32; 4]]> + AsMut<[[f32; 4]]>> BlendableSurface<'s, S> {
