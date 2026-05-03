@@ -48,6 +48,7 @@ macro_rules! light_dark {
     };
 }
 
+/// A lightweight way to keep the returned RGB values grouped together.
 pub struct Rgb {
     r: f32,
     g: f32,
@@ -79,7 +80,7 @@ impl<'s, S: AsRef<[[f32; 4]]> + AsMut<[[f32; 4]]>> BlendableSurface<'s, S> {
         }
     }
 
-    /// Set the blend mode and alpha (0-1)
+    /// Set the blend mode and alpha transparency for this surface (0-1).
     pub const fn set_blend_mode(&mut self, blend_mode: BlendMode, alpha: f32) {
         let f = match &blend_mode {
             BlendMode::Normal => Self::normal,

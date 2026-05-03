@@ -25,7 +25,8 @@ impl Blender {
 
 impl PixelBlitter<[f32; 4]> for Blender {
     fn should_blit_pixel(&self, pixel: &[f32; 4]) -> bool {
-        pixel[3] >= EPSILON_0
+        // Ignore totally transparent pixels.
+        pixel[3] >= EPSILON_0 && self.alpha >= EPSILON_0
     }
 
     fn blit_row<B: AsRef<[[f32; 4]]> + AsMut<[[f32; 4]]>>(
@@ -33,6 +34,7 @@ impl PixelBlitter<[f32; 4]> for Blender {
         top: &[[f32; 4]],
         bottom: &mut [[f32; 4]],
     ) {
+        // Oops this doesn't work as well as we'd like oops.
         top.iter()
             .zip(bottom.iter_mut())
             .for_each(|(top, bottom)| self.blit_pixel(*top, bottom));
@@ -44,20 +46,18 @@ impl PixelBlitter<[f32; 4]> for Blender {
         }
 
         let a = top[3];
-        if a >= EPSILON_0 && self.alpha >= EPSILON_0 {
-            // Blend.
-            let rgb = (self.f)(&top, bottom);
-            // Blend with composited alpha.
-            let ca = (a + bottom[3] * (1. - a)) * self.alpha;
-            if ca >= EPSILON_255 {
-                bottom[0] = rgb.r;
-                bottom[1] = rgb.g;
-                bottom[2] = rgb.b;
-            } else {
-                bottom[0] = lerp(bottom[0], rgb.r, ca);
-                bottom[1] = lerp(bottom[1], rgb.g, ca);
-                bottom[2] = lerp(bottom[2], rgb.b, ca);
-            }
+        // Blend.
+        let rgb = (self.f)(&top, bottom);
+        // Blend with composited alpha.
+        let ca = (a + bottom[3] * (1. - a)) * self.alpha;
+        if ca >= EPSILON_255 {
+            bottom[0] = rgb.r;
+            bottom[1] = rgb.g;
+            bottom[2] = rgb.b;
+        } else {
+            bottom[0] = lerp(bottom[0], rgb.r, ca);
+            bottom[1] = lerp(bottom[1], rgb.g, ca);
+            bottom[2] = lerp(bottom[2], rgb.b, ca);
         }
     }
 }
