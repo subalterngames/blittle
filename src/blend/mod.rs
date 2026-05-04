@@ -65,13 +65,40 @@ pub struct Rgb {
 }
 
 /// A blendable surface backed by a vec.
+///
+/// Source for most of the math: <https://en.wikipedia.org/wiki/Blend_modes>
 #[cfg(feature = "std")]
 pub type BlendableSurfaceVec<'s> = BlendableSurface<'s, Vec<Pixel>>;
 
 /// A surface that allows you to blend pixels rather than copying them onto each other.
 ///
+/// The underlying [Surface] must use `[f32; 4]` pixels, such as [crate::surface::Rgba32Surface]
+///
+/// ```
+/// use blittle::{BlendMode, BlendableSurface, PositionI, Rgba32Surface, Size};
+///
+/// // Define a [f32; 4] surface.
+/// let mut bottom = Rgba32Surface::new_filled(Size { width: 256, height: 256 }, [0.1, 0.3, 0.5, 0.9]);
+///
+/// // We will blend this surface on top of `bottom`.
+/// let mut top = Rgba32Surface::new_filled(Size { width: 64, height: 120 }, [0.3, 0.95, 0.1, 1.]);
+/// // Set the top surface's position relative to the bottom surface.
+/// top.set_position(PositionI::new(1, 5), &bottom);
+/// // Feed the top layer into a BlendableSurface.
+/// let top = BlendableSurface::new(top);
+///
+/// // Blend.
+/// let blend_mode = BlendMode::Overlay;
+/// let alpha = 0.5;
+/// top.blend(blend_mode, alpha, &mut bottom).unwrap();
+/// ```
+///
 /// A BlendableSurface can be locked or unlocked.
-/// If locked, the surface can't be mutated, but blending will be faster.
+/// A locked BlendableSurface usually blends faster but can't mutate its underlying surface pixel buffer.
+/// When initially locked, a BlendableSurface caches the position of every non-transparent pixel.
+/// In the above example, locking `top` would be make blending slightly *slower*
+/// because the surface is filled with a uniform color.
+/// Locking is useful when some pixels are transparent and some are not.
 pub struct BlendableSurface<'s, S: AsRef<[Pixel]> + AsMut<[Pixel]>> {
     surface: Surface<'s, S, Pixel>,
     #[cfg(feature = "std")]
@@ -85,6 +112,11 @@ impl<'s, S: AsRef<[Pixel]> + AsMut<[Pixel]>> BlendableSurface<'s, S> {
             #[cfg(feature = "std")]
             indices: None,
         }
+    }
+
+    /// Returns a reference to the underlying surface.
+    pub const fn surface(&self) -> &Surface<'s, S, Pixel> {
+        &self.surface
     }
 
     /// Returns a mutable reference of the surface.
@@ -102,7 +134,10 @@ impl<'s, S: AsRef<[Pixel]> + AsMut<[Pixel]>> BlendableSurface<'s, S> {
 
     /// Blend into `other` using the `blend_mode` and an `alpha` transparency value (0-1).
     ///
-    /// This can be called if this masked surface is unlocked, but it'll be slower.
+    /// The `alpha` value is applied to each pixel.
+    /// A value of 0 means that `other`'s pixels will be the original (non-blended) pixels.
+    /// A value of 1 means that `other`'s pixels will be the blended pixels.
+    /// A value of 0.5 means that `other`'s pixels will be halfway between the original and blended pixels.
     pub fn blend<B: AsRef<[Pixel]> + AsMut<[Pixel]>>(
         &self,
         blend_mode: BlendMode,

@@ -25,9 +25,19 @@ src.blit(&mut dst).unwrap();
 
 The above example is *very* fast because there is no mask or blending involved.
 
-A mask is a certain color. Pixels in the source image that have the mask color aren't blitted to the destination image. If there was a mask, then `src.blit(dst)` would have to evaluate every pixel. But, because there isn't a mask, `blittle` can copy *each row* of `src` onto `dst` rather than each pixel.
+## Blitting with a mask
 
-If you *do* want to use a mask, you can use a `MaskedSurface`
+A mask is a color. Pixels from the source surface that have the mask color don't get copied onto the destination surface.
+
+You can apply a mask color to a surface by using a `MaskedSurface`.
+
+`MaskedSurface.blit` is usually slower than `Surface.blit` but it can be sped up by calling `MaskedSurface.lock()`.
+
+## Blending
+
+You can blend the pixels of two surfaces together using a `BlendableSurface`.
+
+`BlendableSurface.blend` is usually slower than `Surface.blit` but it can be sped up by calling `BlendableSurface.lock()`.
 
 ## Converting surfaces
 
@@ -52,10 +62,10 @@ let rgba = Rgba8Surface::from(&rgb);
 
 If `blittle` is `no_std`, you'll lose some functionality:
 
-- No type aliases for `Surface` (they are all backed by Vecs)
+- No `Surface` type aliases such as `Rgba8Surface`
 - No implementations for converting one type of surface to another
-- Can't add anything from the `png` or `softbuffer` features
-- `MaskedSurface` can't lock/unlock
+- Can't add the `png` or `softbuffer` features
+- `MaskedSurface` and `BlendableSurface` can't lock/unlock
 
 ## Benchmarks
 

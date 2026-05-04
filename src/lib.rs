@@ -16,7 +16,9 @@ pub mod sb;
 mod size;
 mod surface;
 
-pub use blend::*;
+pub use blend::{BlendMode, BlendableSurface};
+#[cfg(feature = "std")]
+pub use blend::BlendableSurfaceVec;
 pub use convert::PixelConverter;
 pub use error::Error;
 pub use mask::MaskedSurface;

@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.7.0
+
+- Added color blending via `BlendableSurface` and `BlendMode`.
+- Fixed a bug that caused `MaskedSurface` to basically always blit incorrectly. 
+
 ## 0.6.2
 
 `std` is a default feature.
