@@ -17,30 +17,28 @@ const EPSILON_0: f32 = 0.0039216;
 type Pixel = [f32; 4];
 type BlendFunction = fn(top: &[f32; 4], bottom: &[f32; 4]) -> Rgb;
 
-macro_rules! blend_mode_per_pixel {
-    ($f:ident, $c:expr) => {
+macro_rules! blend_per_pixel {
+    ($f:ident, $c:expr, $clamp:literal) => {
         const fn $f(top: &Pixel, bottom: &Pixel) -> Rgb {
-            Rgb::new($c(top, bottom, 0), $c(top, bottom, 1), $c(top, bottom, 2))
+            Rgb {
+                r: $c(top, bottom, 0),
+                g: $c(top, bottom, 1),
+                b: $c(top, bottom, 2),
+                clamp: $clamp,
+            }
         }
     };
 }
 
 macro_rules! arithmetic {
-    ($f:ident, $op:tt) => {
+    ($f:ident, $op:tt, $clamp:literal) => {
         const fn $f(top: &Pixel, bottom: &Pixel) -> Rgb {
-            Rgb::new(bottom[0] $op top[0],
-            bottom[1] $op top[1],
-            bottom[2] $op top[2],)
-        }
-    };
-}
-
-macro_rules! arithmetic_clamp {
-    ($f:ident, $op:tt) => {
-        const fn $f(top: &Pixel, bottom: &Pixel) -> Rgb {
-            Rgb::new((bottom[0] $op top[0]).clamp(0., 1.),
-            (bottom[1] $op top[1]).clamp(0., 1.),
-            (bottom[2] $op top[2]).clamp(0., 1.),)
+            Rgb {
+                r: bottom[0] $op top[0],
+                g: bottom[1] $op top[1],
+                b: bottom[2] $op top[2],
+                clamp: $clamp
+            }
         }
     };
 }
@@ -48,11 +46,12 @@ macro_rules! arithmetic_clamp {
 macro_rules! light_dark {
     ($f:ident, $e:ident) => {
         const fn $f(top: &Pixel, bottom: &Pixel) -> Rgb {
-            Rgb::new(
-                bottom[0].$e(top[0]),
-                bottom[1].$e(top[1]),
-                bottom[2].$e(top[2]),
-            )
+            Rgb {
+                r: bottom[0].$e(top[0]),
+                g: bottom[1].$e(top[1]),
+                b: bottom[2].$e(top[2]),
+                clamp: false,
+            }
         }
     };
 }
@@ -62,12 +61,7 @@ pub struct Rgb {
     r: f32,
     g: f32,
     b: f32,
-}
-
-impl Rgb {
-    pub const fn new(r: f32, g: f32, b: f32) -> Self {
-        Self { r, g, b }
-    }
+    pub(super) clamp: bool,
 }
 
 /// A blendable surface backed by a vec.
@@ -254,6 +248,11 @@ impl<'s, S: AsRef<[Pixel]> + AsMut<[Pixel]>> BlendableSurface<'s, S> {
             bottom[1] = lerp(bottom[1], rgb.g, ca);
             bottom[2] = lerp(bottom[2], rgb.b, ca);
         }
+        if rgb.clamp {
+            bottom[0] = bottom[0].clamp(0., 1.);
+            bottom[1] = bottom[1].clamp(0., 1.);
+            bottom[2] = bottom[2].clamp(0., 1.);
+        }
     }
 
     const fn normal(top: &Pixel, bottom: &Pixel) -> Rgb {
@@ -262,19 +261,20 @@ impl<'s, S: AsRef<[Pixel]> + AsMut<[Pixel]>> BlendableSurface<'s, S> {
         }
         // Source: https://en.wikipedia.org/wiki/Alpha_compositing
         let a = top[3];
-        Rgb::new(
-            composite(top, bottom, a, 0),
-            composite(top, bottom, a, 1),
-            composite(top, bottom, a, 2),
-        )
+        Rgb {
+            r: composite(top, bottom, a, 0),
+            g: composite(top, bottom, a, 1),
+            b: composite(top, bottom, a, 2),
+            clamp: false,
+        }
     }
 
-    arithmetic!(multiply, *);
+    arithmetic!(multiply, *, false);
 
     const fn screen_channel(top: &Pixel, bottom: &Pixel, i: usize) -> f32 {
         1. - (1. - bottom[i]) * (1. - top[i])
     }
-    blend_mode_per_pixel!(screen, Self::screen_channel);
+    blend_per_pixel!(screen, Self::screen_channel, false);
 
     const fn overlay(top: &Pixel, bottom: &Pixel) -> Rgb {
         Self::overlay_inner(top, bottom, Self::luminance(bottom))
@@ -311,23 +311,21 @@ impl<'s, S: AsRef<[Pixel]> + AsMut<[Pixel]>> BlendableSurface<'s, S> {
         } else {
             less_than_half
         };
-        Rgb::new(f(top, bottom, 0), f(top, bottom, 1), f(top, bottom, 2))
+        Rgb {
+            r: f(top, bottom, 0),
+            g: f(top, bottom, 1),
+            b: f(top, bottom, 2),
+            clamp: false,
+        }
     }
 
-    const fn dodge(top: &Pixel, bottom: &Pixel) -> Rgb {
-        Rgb::new(
-            Self::get_dodge(top, bottom, 0),
-            Self::get_dodge(top, bottom, 1),
-            Self::get_dodge(top, bottom, 2),
-        )
+    const fn dodge_channel(top: &Pixel, bottom: &Pixel, i: usize) -> f32 {
+        bottom[i] / (1. - top[i])
     }
+    blend_per_pixel!(dodge, Self::dodge_channel, true);
 
     const fn burn(top: &Pixel, bottom: &Pixel) -> Rgb {
-        Rgb::new(
-            Self::get_dodge(bottom, top, 0),
-            Self::get_dodge(bottom, top, 1),
-            Self::get_dodge(bottom, top, 2),
-        )
+        Self::dodge(bottom, top)
     }
 
     const fn vivid_light(top: &Pixel, bottom: &Pixel) -> Rgb {
@@ -339,16 +337,16 @@ impl<'s, S: AsRef<[Pixel]> + AsMut<[Pixel]>> BlendableSurface<'s, S> {
         }
     }
 
-    arithmetic!(divide, /);
+    arithmetic!(divide, /, false);
 
-    arithmetic_clamp!(add, +);
+    arithmetic!(add, +, true);
 
-    arithmetic_clamp!(subtract, -);
+    arithmetic!(subtract, -, true);
 
     const fn difference_channel(top: &Pixel, bottom: &Pixel, i: usize) -> f32 {
-        (bottom[i] - top[i]).abs().clamp(0., 1.)
+        (bottom[i] - top[i]).abs()
     }
-    blend_mode_per_pixel!(difference, Self::difference_channel);
+    blend_per_pixel!(difference, Self::difference_channel, true);
 
     light_dark!(darken_only, min);
 
@@ -361,36 +359,22 @@ impl<'s, S: AsRef<[Pixel]> + AsMut<[Pixel]>> BlendableSurface<'s, S> {
         (max + min) * 0.5
     }
 
-    const fn multiply_two(top: &Pixel, bottom: &Pixel) -> Rgb {
-        const fn ttb(top: &Pixel, bottom: &Pixel, i: usize) -> f32 {
-            (2. * top[i] * bottom[i]).clamp(0., 1.)
-        }
-
-        Rgb::new(
-            ttb(top, bottom, 0),
-            ttb(top, bottom, 1),
-            ttb(top, bottom, 2),
-        )
+    const fn overlay_darker_channel(top: &Pixel, bottom: &Pixel, i: usize) -> f32 {
+        2. * top[i] * bottom[i]
     }
+    blend_per_pixel!(overlay_darker, Self::overlay_darker_channel, true);
 
-    const fn overlay_inner(top: &Pixel, bottom: &Pixel, lum: f32) -> Rgb {
-        const fn over(top: &Pixel, bottom: &Pixel, i: usize) -> f32 {
-            1. - 2. * (1. - bottom[i]) * (1. - top[i]).clamp(0., 1.)
-        }
+    const fn overlay_lighter_channel(top: &Pixel, bottom: &Pixel, i: usize) -> f32 {
+        1. - 2. * (1. - bottom[i]) * (1. - top[i])
+    }
+    blend_per_pixel!(overlay_lighter, Self::overlay_lighter_channel, true);
 
-        if lum < 0.5 {
-            Self::multiply_two(top, bottom)
+    const fn overlay_inner(top: &Pixel, bottom: &Pixel, luminance: f32) -> Rgb {
+        if luminance < 0.5 {
+            Self::overlay_darker(top, bottom)
         } else {
-            Rgb::new(
-                over(top, bottom, 0),
-                over(top, bottom, 1),
-                over(top, bottom, 2),
-            )
+            Self::overlay_lighter(top, bottom)
         }
-    }
-
-    const fn get_dodge(top: &Pixel, bottom: &Pixel, i: usize) -> f32 {
-        (bottom[i] / (1. - top[i])).clamp(0., 1.)
     }
 }
 
