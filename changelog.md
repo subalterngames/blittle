@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.7.2
+
+- Renamed a function to eliminate ambiguity
+
 ## 0.7.1
 
 - Exposed all blend functions

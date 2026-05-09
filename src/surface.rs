@@ -105,7 +105,7 @@ impl<'s, P: Copy + Clone + Sized + Default> Surface<'s, &'s mut [P], P> {
     /// The underlying pixel buffer is set to the pixel's default value (i.e. `[0, 0, 0]`), length `size.width * size.height`.
     ///
     /// Returns an error if `size.width * size.height != buffer.len()`
-    pub fn new(size: Size, buffer: &'s mut [P]) -> Result<Self, Error> {
+    pub fn new_from_slice(size: Size, buffer: &'s mut [P]) -> Result<Self, Error> {
         let len = buffer.len();
         if size.width * size.height == len {
             Ok(Self {
