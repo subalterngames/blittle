@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.7.1
+
+- Exposed all blend functions
+
 ## 0.7.0
 
 - Added color blending via `BlendableSurface` and `BlendMode`.

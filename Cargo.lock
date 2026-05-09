@@ -81,11 +81,12 @@ dependencies = [
 
 [[package]]
 name = "blittle"
-version = "0.7.0"
+version = "0.7.1"
 dependencies = [
  "blit",
  "bytemuck",
  "criterion",
+ "paste",
  "png 0.18.1",
  "raw-window-handle",
  "sdl2",
@@ -773,6 +774,12 @@ dependencies = [
  "libc",
  "winapi",
 ]
+
+[[package]]
+name = "paste"
+version = "1.0.15"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "57c0d7b74b563b49d38dae00a0c37d4d6de9b432382b2892f0574ddcae73fd0a"
 
 [[package]]
 name = "pin-project-lite"

@@ -5,6 +5,7 @@ use crate::lock::get_dst_index;
 use crate::lock::get_indices;
 use crate::{Error, RectU, Surface};
 pub use blend_mode::BlendMode;
+use paste::paste;
 
 /// A hacky optimization.
 /// We assume that we're converting to and from pixels with 8-bit channels.
@@ -15,11 +16,11 @@ const EPSILON_255: f32 = 0.9960784;
 const EPSILON_0: f32 = 0.0039216;
 
 type Pixel = [f32; 4];
-type BlendFunction = fn(top: &[f32; 4], bottom: &[f32; 4]) -> Rgb;
+type BlendFunction = fn(top: &Pixel, bottom: &Pixel) -> Rgb;
 
 macro_rules! blend_per_pixel {
     ($f:ident, $c:expr, $clamp:literal) => {
-        const fn $f(top: &Pixel, bottom: &Pixel) -> Rgb {
+        pub const fn $f(top: &Pixel, bottom: &Pixel) -> Rgb {
             Rgb {
                 r: $c(top, bottom, 0),
                 g: $c(top, bottom, 1),
@@ -51,6 +52,16 @@ macro_rules! light_dark {
                 g: bottom[1].$e(top[1]),
                 b: bottom[2].$e(top[2]),
                 clamp: false,
+            }
+        }
+    };
+}
+
+macro_rules! pub_blend_fn {
+    ($f:ident) => {
+        paste! {
+            pub fn [<blend_ $f>](top: Pixel, bottom: &mut Pixel, alpha: f32) {
+                Self::blend_pixel(Self::$f, top, bottom, alpha);
             }
         }
     };
@@ -161,6 +172,22 @@ impl<'s, S: AsRef<[Pixel]> + AsMut<[Pixel]>> BlendableSurface<'s, S> {
         Ok(())
     }
 
+    pub_blend_fn!(normal);
+    pub_blend_fn!(multiply);
+    pub_blend_fn!(screen);
+    pub_blend_fn!(overlay);
+    pub_blend_fn!(hard_light);
+    pub_blend_fn!(soft_light);
+    pub_blend_fn!(dodge);
+    pub_blend_fn!(burn);
+    pub_blend_fn!(vivid_light);
+    pub_blend_fn!(divide);
+    pub_blend_fn!(add);
+    pub_blend_fn!(subtract);
+    pub_blend_fn!(difference);
+    pub_blend_fn!(lighten_only);
+    pub_blend_fn!(darken_only);
+
     /// Lock the surface, optimizing blit speed while preventing pixel manipulation.
     #[cfg(feature = "std")]
     pub fn lock(&mut self) {
@@ -208,9 +235,9 @@ impl<'s, S: AsRef<[Pixel]> + AsMut<[Pixel]>> BlendableSurface<'s, S> {
             {
                 Self::blend_pixel(
                     f,
-                    alpha,
                     self.surface.buffer.as_ref()[i],
                     &mut other.buffer_mut()[dst_index],
+                    alpha,
                 );
             }
         });
@@ -235,9 +262,9 @@ impl<'s, S: AsRef<[Pixel]> + AsMut<[Pixel]>> BlendableSurface<'s, S> {
                 if p[3] >= EPSILON_0 {
                     Self::blend_pixel(
                         f,
-                        alpha,
                         self.surface.buffer.as_ref()[src_index],
                         &mut other.buffer_mut()[dst_index],
+                        alpha,
                     );
                 }
             })
@@ -264,7 +291,7 @@ impl<'s, S: AsRef<[Pixel]> + AsMut<[Pixel]>> BlendableSurface<'s, S> {
         }
     }
 
-    fn blend_pixel(f: BlendFunction, alpha: f32, top: [f32; 4], bottom: &mut [f32; 4]) {
+    fn blend_pixel(f: BlendFunction, top: Pixel, bottom: &mut Pixel, alpha: f32) {
         const fn lerp(a: f32, b: f32, t: f32) -> f32 {
             a + t * (b - a)
         }
@@ -320,13 +347,13 @@ impl<'s, S: AsRef<[Pixel]> + AsMut<[Pixel]>> BlendableSurface<'s, S> {
     }
 
     fn soft_light(top: &Pixel, bottom: &Pixel) -> Rgb {
-        fn greater_than_half(top: &Pixel, bottom: &Pixel, i: usize) -> f32 {
+        const fn greater_than_half(top: &Pixel, bottom: &Pixel, i: usize) -> f32 {
             let a = bottom[i];
             let b = top[i];
             2. * a * b + (a * a) * (1. - 2. * b)
         }
 
-        fn half(top: &Pixel, bottom: &Pixel, i: usize) -> f32 {
+        const fn half(top: &Pixel, bottom: &Pixel, i: usize) -> f32 {
             let a = bottom[i];
             let b = top[i];
             (1. - 2. * b) * (a * a) + 2. * a * b
