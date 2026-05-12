@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.7.3
+
+- Fixed: `Surface::set_area` doesn't work when it should due to bad clipping logic
+- Removed: `Surface::new_from_slice` 
+- Added: `Surface::new_ref_from_bitmap` Similar to `new_from_slice` but accepts raw bytes instead of raw pixels
+- Added: `Surface::new_from_bitmap` for vec-backed surfaces
+
 ## 0.7.2
 
 - Renamed a function to eliminate ambiguity
