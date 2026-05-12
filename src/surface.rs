@@ -1,6 +1,7 @@
 use crate::error::Error;
 use crate::rect::{RectI, RectU};
 use crate::{PositionI, PositionU, Size};
+use bytemuck::Pod;
 #[cfg(not(feature = "std"))]
 use core::marker::PhantomData;
 #[cfg(feature = "std")]
@@ -68,7 +69,7 @@ pub struct Surface<'s, S: AsRef<[P]> + AsMut<[P]>, P: Copy + Clone + Sized + Def
 }
 
 #[cfg(feature = "std")]
-impl<P: Copy + Clone + Sized + Default> Surface<'_, Vec<P>, P> {
+impl<P: Copy + Clone + Sized + Default + Pod> Surface<'_, Vec<P>, P> {
     /// Get a new surface.
     ///
     /// The position defaults to `(0, 0)`.
@@ -96,28 +97,32 @@ impl<P: Copy + Clone + Sized + Default> Surface<'_, Vec<P>, P> {
             _p: PhantomData,
         }
     }
+
+    /// Get a new surface from a raw bitmap.
+    ///
+    /// This will not work with png files!
+    /// To load a Surface from a png file, add the `png` feature.
+    /// See `blittle::png::Png` for more info.
+    #[cfg(feature = "bytes")]
+    pub fn new_from_bitmap<B: AsRef<[u8]>>(size: Size, buffer: B) -> Result<Self, Error> {
+        let buffer = bytemuck::cast_slice::<u8, P>(buffer.as_ref()).to_vec();
+        Self::new_from_cast_bitmap(size, buffer)
+    }
 }
 
-impl<'s, P: Copy + Clone + Sized + Default> Surface<'s, &'s mut [P], P> {
-    /// Get a new surface from a mutable slice.
+#[cfg(feature = "std")]
+impl<'s, P: Copy + Clone + Sized + Default + Pod> Surface<'s, &'s mut [P], P> {
+    /// Get a new surface from a raw bitmap that references the raw bitmap.
     ///
-    /// The position defaults to `(0, 0)`.
-    /// The underlying pixel buffer is set to the pixel's default value (i.e. `[0, 0, 0]`), length `size.width * size.height`.
-    ///
-    /// Returns an error if `size.width * size.height != buffer.len()`
-    pub fn new_from_slice(size: Size, buffer: &'s mut [P]) -> Result<Self, Error> {
-        let len = buffer.len();
-        if size.width * size.height == len {
-            Ok(Self {
-                size,
-                buffer,
-                destination_rect: None,
-                blit_area: None,
-                _p: PhantomData,
-            })
-        } else {
-            Err(Error::InvalidSize { len, size })
-        }
+    /// This will not work with png files!
+    /// To load a Surface from a png file, add the `png` feature.
+    /// See `blittle::png::Png` for more info.
+    pub fn new_ref_from_bitmap<B: AsRef<[u8]> + AsMut<[u8]>>(
+        size: Size,
+        buffer: &'s mut B,
+    ) -> Result<Self, Error> {
+        let buffer = bytemuck::cast_slice_mut::<u8, P>(buffer.as_mut());
+        Self::new_from_cast_bitmap(size, buffer)
     }
 }
 
@@ -193,7 +198,7 @@ impl<S: AsRef<[P]> + AsMut<[P]>, P: Copy + Clone + Sized + Default> Surface<'_, 
     /// - `self` can set its position relative to a `Surface<'s, &'s mut [u8], [u8; 4]>>`
     /// - `self` *can't* set its position relative to a `Surface<'_, Vec<[u8; 3]>, [u8; 3]>>`
     ///
-    /// This will also set the region of pixels of `self.buffer` that otherlap with `destination.buffer`.
+    /// This will also set the region of pixels of `self.buffer` that overlap with `destination.buffer`.
     ///
     /// Returns an error if the clipped blitting area is not within `destination`.
     pub const fn set_position<B: AsRef<[P]> + AsMut<[P]>>(
@@ -398,6 +403,21 @@ impl<S: AsRef<[P]> + AsMut<[P]>, P: Copy + Clone + Sized + Default> Surface<'_, 
                 }
             }
             None => Err(Error::NoDestinationRect),
+        }
+    }
+
+    fn new_from_cast_bitmap(size: Size, buffer: S) -> Result<Self, Error> {
+        let len = buffer.as_ref().len();
+        if size.width * size.height == len {
+            Ok(Self {
+                size,
+                buffer,
+                destination_rect: None,
+                blit_area: None,
+                _p: PhantomData,
+            })
+        } else {
+            Err(Error::InvalidSize { len, size })
         }
     }
 }
