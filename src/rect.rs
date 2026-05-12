@@ -78,10 +78,8 @@ impl RectI {
     }
 
     pub const fn clip(self, other: Self) -> Option<RectU> {
-        let other_w = other.size.width.cast_signed();
-        let other_h = other.size.height.cast_signed();
         // Don't try clipping if there is no overlap.
-        if overlaps!(self, other, other_w, other_h) {
+        if self.overlaps(&other) {
             let mut position = PositionU::ZERO;
             clip_top_left!(self, position, x);
             clip_top_left!(self, position, y);

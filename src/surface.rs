@@ -1,7 +1,6 @@
 use crate::error::Error;
 use crate::rect::{RectI, RectU};
 use crate::{PositionI, PositionU, Size};
-use bytemuck::Pod;
 #[cfg(not(feature = "std"))]
 use core::marker::PhantomData;
 #[cfg(feature = "std")]
@@ -69,7 +68,7 @@ pub struct Surface<'s, S: AsRef<[P]> + AsMut<[P]>, P: Copy + Clone + Sized + Def
 }
 
 #[cfg(feature = "std")]
-impl<P: Copy + Clone + Sized + Default + Pod> Surface<'_, Vec<P>, P> {
+impl<P: Copy + Clone + Sized + Default> Surface<'_, Vec<P>, P> {
     /// Get a new surface.
     ///
     /// The position defaults to `(0, 0)`.
@@ -97,21 +96,23 @@ impl<P: Copy + Clone + Sized + Default + Pod> Surface<'_, Vec<P>, P> {
             _p: PhantomData,
         }
     }
+}
 
+#[cfg(feature = "bytes")]
+impl<P: Copy + Clone + Sized + Default + bytemuck::Pod> Surface<'_, Vec<P>, P> {
     /// Get a new surface from a raw bitmap.
     ///
     /// This will not work with png files!
     /// To load a Surface from a png file, add the `png` feature.
     /// See `blittle::png::Png` for more info.
-    #[cfg(feature = "bytes")]
     pub fn new_from_bitmap<B: AsRef<[u8]>>(size: Size, buffer: B) -> Result<Self, Error> {
         let buffer = bytemuck::cast_slice::<u8, P>(buffer.as_ref()).to_vec();
         Self::new_from_cast_bitmap(size, buffer)
     }
 }
 
-#[cfg(feature = "std")]
-impl<'s, P: Copy + Clone + Sized + Default + Pod> Surface<'s, &'s mut [P], P> {
+#[cfg(feature = "bytes")]
+impl<'s, P: Copy + Clone + Sized + Default + bytemuck::Pod> Surface<'s, &'s mut [P], P> {
     /// Get a new surface from a raw bitmap that references the raw bitmap.
     ///
     /// This will not work with png files!
@@ -254,21 +255,35 @@ impl<S: AsRef<[P]> + AsMut<[P]>, P: Copy + Clone + Sized + Default> Surface<'_, 
     /// assert!(src.set_area(Some(RectI { position: PositionI::new(-2000, -2000), size: Size::new(60, 80)})).is_err());
     /// ```
     pub const fn set_area(&mut self, area: Option<RectI>) -> Result<Option<RectU>, Error> {
-        match self.destination_rect {
-            Some(destination_rect) => match area {
-                Some(area) => {
-                    let rect = RectI::from_size(destination_rect.size);
-                    match area.clip(rect) {
-                        Some(area) => {
-                            self.blit_area = Some(area);
-                            Ok(self.blit_area)
+        match area {
+            Some(area) => {
+                // Clip the area to fit within the surface.
+                match area.clip(RectI::from_size(self.size)) {
+                    Some(mut area) => {
+                        // Try to get the destination rect.
+                        match &self.destination_rect {
+                            Some(destination_rect) => {
+                                // Clamp the area's size to fit within the destination rect.
+                                if area.size.width > destination_rect.size.width {
+                                    area.size.width = destination_rect.size.width;
+                                }
+                                if area.size.height > destination_rect.size.height {
+                                    area.size.height = destination_rect.size.height;
+                                }
+                                // Set the blit area.
+                                self.blit_area = Some(area);
+                                Ok(self.blit_area)
+                            }
+                            None => Err(Error::AreaBeforePosition),
                         }
-                        None => Err(Error::InvalidArea(area)),
                     }
+                    None => Err(Error::InvalidArea(area)),
                 }
-                None => Ok(None),
-            },
-            None => Err(Error::AreaBeforePosition),
+            }
+            None => {
+                self.blit_area = None;
+                Ok(self.blit_area)
+            }
         }
     }
 
@@ -406,6 +421,7 @@ impl<S: AsRef<[P]> + AsMut<[P]>, P: Copy + Clone + Sized + Default> Surface<'_, 
         }
     }
 
+    #[cfg(feature = "bytes")]
     fn new_from_cast_bitmap(size: Size, buffer: S) -> Result<Self, Error> {
         let len = buffer.as_ref().len();
         if size.width * size.height == len {
