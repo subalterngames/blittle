@@ -1,5 +1,3 @@
-#[cfg(feature = "png")]
-use png::ColorType;
 use thiserror::Error;
 
 use crate::rect::RectI;
@@ -29,16 +27,4 @@ pub enum Error {
     MaskSize { actual: usize, expected: usize },
     #[error("Masked surface is currently locked.")]
     Locked,
-    #[cfg(feature = "png")]
-    #[error("Failed to write to {0} Reason: {1}")]
-    PngFile(std::path::PathBuf, std::io::Error),
-    #[cfg(feature = "png")]
-    #[error("Failed to write png header: {0}")]
-    PngHeader(png::EncodingError),
-    #[cfg(feature = "png")]
-    #[error("Failed to write png pixel data: {0}")]
-    PngPixels(png::EncodingError),
-    #[cfg(feature = "png")]
-    #[error("png has invalid color type: {:?}. Expected: {:?}", 1, 2)]
-    PngColorType(ColorType, ColorType),
 }

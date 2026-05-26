@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.7.4
+
+- Added `jpg` feature for jpg reading/writing
+
 ## 0.7.3
 
 - Fixed: `Surface::set_area` doesn't work when it should due to bad clipping logic

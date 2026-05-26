@@ -5,6 +5,8 @@
 mod blend;
 mod convert;
 mod error;
+#[cfg(feature = "jpg")]
+pub mod jpg;
 mod lock;
 mod mask;
 #[cfg(feature = "png")]
