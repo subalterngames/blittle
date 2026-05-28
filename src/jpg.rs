@@ -1,5 +1,5 @@
 use crate::{Size, Surface};
-use bytemuck::{Pod, Zeroable, cast_vec};
+use bytemuck::{Pod, Zeroable, cast_slice};
 use jpeg_encoder::{ColorType, Encoder};
 use std::io::{BufRead, Seek};
 use std::marker::PhantomData;
@@ -93,7 +93,7 @@ pub trait Jpg<S: AsRef<[P]> + AsMut<[P]>, P: Copy + Clone + Sized + Default + Ze
         if colorspace == expected_colorspace {
             Ok(Surface {
                 size: Size::new(width, height),
-                buffer: cast_vec::<u8, P>(pixels),
+                buffer: cast_slice::<u8, P>(&pixels).to_vec(),
                 destination_rect: None,
                 blit_area: None,
                 _p: PhantomData,

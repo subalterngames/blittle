@@ -1,6 +1,6 @@
 [package]
 name = "blittle"
-version = "0.7.4"
+version = "0.7.5"
 edition = "2024"
 description = "A fast little blitter"
 authors = ["Esther Alter <subalterngames@gmail.com>"]
@@ -11,7 +11,7 @@ keywords = ["blitting", "image", "sprite", "gamedev", "graphics"]
 categories = ["game-development", "graphics", "rendering"]
 
 [dependencies]
-bytemuck = { version = "1.25.0", optional = true }
+bytemuck = { version = "1.25.0", optional = true, features = ["derive"] }
 jpeg-encoder = { version = "0.7.0", optional = true}
 paste = "1.0.15"
 png =  { version = "0.18.1", optional = true }

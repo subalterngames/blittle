@@ -334,6 +334,43 @@ impl<S: AsRef<[P]> + AsMut<[P]>, P: Copy + Clone + Sized + Default> Surface<'_, 
         self.buffer.as_ref()[index]
     }
 
+    /// Returns a mutable reference of the pixel at `position`.
+    ///
+    /// Returns an error if `position` is out of bounds.
+    ///
+    /// ```
+    /// use blittle::*;
+    ///
+    /// let mut src = Rgb8Surface::new(Size::new(64, 64));
+    /// // Get the pixel at this position.
+    /// let _ = src.get_pixel_checked(PositionU::new(3, 15));
+    /// // This position is out of bounds.
+    /// assert!(src.get_pixel_mut_checked(PositionU::new(102, 15)).is_err());
+    /// ```
+    pub fn get_pixel_mut_checked(&mut self, position: PositionU) -> Result<&mut P, Error> {
+        if position.x < self.size.width && position.y < self.size.height {
+            Ok(self.get_pixel_mut_unchecked(position))
+        } else {
+            Err(Error::PixelPosition {
+                position,
+                size: self.size,
+            })
+        }
+    }
+
+    /// Returns a mutable reference of the color of the pixel at `position`.
+    ///
+    /// ```
+    /// use blittle::*;
+    ///
+    /// let mut src = Rgb8Surface::new(Size::new(64, 64));
+    /// let _ = src.get_pixel_mut_unchecked(PositionU::new(3, 15));
+    /// ```
+    pub fn get_pixel_mut_unchecked(&mut self, position: PositionU) -> &mut P {
+        let index = self.get_index(position.x, position.y);
+        &mut self.buffer.as_mut()[index]
+    }
+
     /// Set the color of the pixel at `position`.
     ///
     /// Returns an error if `position` is out of bounds.

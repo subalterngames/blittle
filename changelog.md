@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.7.5
+
+- Moved blend functions from `BlendableSurface` to `BlendMode`
+- Added: `Surface::get_pixel_mut_unchecked`
+- Added: `Surface::get_pixel_mut_checked`
+- Fixed: Doesn't compile with `bytes` feature enabled
+
 ## 0.7.4
 
 - Added `jpg` feature for jpg reading/writing
