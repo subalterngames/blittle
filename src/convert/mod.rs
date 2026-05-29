@@ -1,31 +1,374 @@
 #[cfg(feature = "std")]
 mod from;
-mod l32;
-mod l8;
-mod la32;
-mod la8;
-mod rgb8;
-mod rgba32;
-mod rgba8;
 
+use paste::paste;
+
+macro_rules! from_pixel {
+    ($t:ident) => {
+        paste! {
+            fn from_l8(pixel: &u8) -> Self {
+                pixel.[<to_ $t>]()
+            }
+
+            fn from_la8(pixel: &[u8; 2]) -> Self {
+                pixel.[<to_ $t>]()
+            }
+
+            fn from_l32(pixel: &f32) -> Self {
+                pixel.[<to_ $t>]()
+            }
+
+            fn from_la32(pixel: &[f32; 2]) -> Self {
+                pixel.[<to_ $t>]()
+            }
+
+            fn from_rgb8(pixel: &[u8; 3]) -> Self {
+                pixel.[<to_ $t>]()
+            }
+
+            fn from_rgba8(pixel: &[u8; 4]) -> Self {
+                pixel.[<to_ $t>]()
+            }
+
+            fn from_rgba32(pixel: &[f32; 4]) -> Self {
+                 pixel.[<to_ $t>]()
+            }
+
+            #[cfg(feature = "softbuffer")]
+            fn from_zrgb(pixel: &crate::sb::Zrgb) -> Self {
+                pixel.[<to_ $t>]()
+            }
+        }
+    };
+}
 /// Convert from one surface's pixel type to another surface's pixel type.
-pub trait PixelConverter<P: Copy + Clone + Sized + Default> {
-    fn pixel_to_l8(pixel: &P) -> u8;
+pub trait PixelConverter {
+    fn to_l8(&self) -> u8;
 
-    fn pixel_to_la8(pixel: &P) -> [u8; 2];
+    fn to_la8(&self) -> [u8; 2];
 
-    fn pixel_to_l32(pixel: &P) -> f32;
+    fn to_l32(&self) -> f32;
 
-    fn pixel_to_la32(pixel: &P) -> [f32; 2];
+    fn to_la32(&self) -> [f32; 2];
 
-    fn pixel_to_rgb8(pixel: &P) -> [u8; 3];
+    fn to_rgb8(&self) -> [u8; 3];
 
-    fn pixel_to_rgba8(pixel: &P) -> [u8; 4];
+    fn to_rgba8(&self) -> [u8; 4];
 
-    fn pixel_to_rgba32(pixel: &P) -> [f32; 4];
+    fn to_rgba32(&self) -> [f32; 4];
 
     #[cfg(feature = "softbuffer")]
-    fn pixel_to_zrgb(pixel: &P) -> crate::sb::Zrgb;
+    fn to_zrgb(&self) -> crate::sb::Zrgb;
+
+    fn from_l8(pixel: &u8) -> Self;
+
+    fn from_la8(pixel: &[u8; 2]) -> Self;
+
+    fn from_l32(pixel: &f32) -> Self;
+
+    fn from_la32(pixel: &[f32; 2]) -> Self;
+
+    fn from_rgb8(pixel: &[u8; 3]) -> Self;
+
+    fn from_rgba8(pixel: &[u8; 4]) -> Self;
+
+    fn from_rgba32(pixel: &[f32; 4]) -> Self;
+
+    #[cfg(feature = "softbuffer")]
+    fn from_zrgb(pixel: &crate::sb::Zrgb) -> Self;
+}
+
+impl PixelConverter for u8 {
+    fn to_l8(&self) -> u8 {
+        *self
+    }
+
+    fn to_la8(&self) -> [u8; 2] {
+        [*self, 255]
+    }
+
+    fn to_l32(&self) -> f32 {
+        u8_to_f32(*self)
+    }
+
+    fn to_la32(&self) -> [f32; 2] {
+        [self.to_l32(), 1.]
+    }
+
+    fn to_rgb8(&self) -> [u8; 3] {
+        [*self; 3]
+    }
+
+    fn to_rgba8(&self) -> [u8; 4] {
+        [*self; 4]
+    }
+
+    fn to_rgba32(&self) -> [f32; 4] {
+        let p = self.to_l32();
+        [p, p, p, 1.]
+    }
+
+    #[cfg(feature = "softbuffer")]
+    fn to_zrgb(&self) -> crate::sb::Zrgb {
+        let p = *self;
+        crate::sb::Zrgb::new(p, p, p)
+    }
+
+    from_pixel!(l8);
+}
+
+impl PixelConverter for f32 {
+    fn to_l8(&self) -> u8 {
+        f32_to_u8(*self)
+    }
+
+    fn to_la8(&self) -> [u8; 2] {
+        [self.to_l8(), 255]
+    }
+
+    fn to_l32(&self) -> f32 {
+        *self
+    }
+
+    fn to_la32(&self) -> [f32; 2] {
+        [*self, 1.]
+    }
+
+    fn to_rgb8(&self) -> [u8; 3] {
+        [self.to_l8(); 3]
+    }
+
+    fn to_rgba8(&self) -> [u8; 4] {
+        let p = self.to_l8();
+        [p, p, p, 255]
+    }
+
+    fn to_rgba32(&self) -> [f32; 4] {
+        let p = *self;
+        [p, p, p, 1.]
+    }
+
+    #[cfg(feature = "softbuffer")]
+    fn to_zrgb(&self) -> crate::sb::Zrgb {
+        let p = f32_to_u8(*self);
+        crate::sb::Zrgb::new(p, p, p)
+    }
+
+    from_pixel!(l32);
+}
+
+impl PixelConverter for [u8; 2] {
+    fn to_l8(&self) -> u8 {
+        self[0]
+    }
+
+    fn to_la8(&self) -> [u8; 2] {
+        *self
+    }
+
+    fn to_l32(&self) -> f32 {
+        u8_to_f32(self[0])
+    }
+
+    fn to_la32(&self) -> [f32; 2] {
+        [u8_to_f32(self[0]), u8_to_f32(self[1])]
+    }
+
+    fn to_rgb8(&self) -> [u8; 3] {
+        [self[0]; 3]
+    }
+
+    fn to_rgba8(&self) -> [u8; 4] {
+        [self[0]; 4]
+    }
+
+    fn to_rgba32(&self) -> [f32; 4] {
+        let p = u8_to_f32(self[0]);
+        let a = u8_to_f32(self[1]);
+        [p, p, p, a]
+    }
+
+    #[cfg(feature = "softbuffer")]
+    fn to_zrgb(&self) -> crate::sb::Zrgb {
+        let p = self[0];
+        crate::sb::Zrgb::new(p, p, p)
+    }
+
+    from_pixel!(la8);
+}
+
+impl PixelConverter for [f32; 2] {
+    fn to_l8(&self) -> u8 {
+        f32_to_u8(self[0])
+    }
+
+    fn to_la8(&self) -> [u8; 2] {
+        [f32_to_u8(self[0]), f32_to_u8(self[1])]
+    }
+
+    fn to_l32(&self) -> f32 {
+        self[0]
+    }
+
+    fn to_la32(&self) -> [f32; 2] {
+        *self
+    }
+
+    fn to_rgb8(&self) -> [u8; 3] {
+        [f32_to_u8(self[0]); 3]
+    }
+
+    fn to_rgba8(&self) -> [u8; 4] {
+        let p = f32_to_u8(self[0]);
+        [p, p, p, f32_to_u8(self[1])]
+    }
+
+    fn to_rgba32(&self) -> [f32; 4] {
+        let p = self[0];
+        [p, p, p, self[1]]
+    }
+
+    #[cfg(feature = "softbuffer")]
+    fn to_zrgb(&self) -> crate::sb::Zrgb {
+        let p = f32_to_u8(self[0]);
+        crate::sb::Zrgb::new(p, p, p)
+    }
+
+    from_pixel!(la32);
+}
+
+impl PixelConverter for [u8; 3] {
+    fn to_l8(&self) -> u8 {
+        f32_to_u8(self.to_l32())
+    }
+
+    fn to_la8(&self) -> [u8; 2] {
+        [self.to_l8(), 255]
+    }
+
+    fn to_l32(&self) -> f32 {
+        grayscale(self[0], self[1], self[2])
+    }
+
+    fn to_la32(&self) -> [f32; 2] {
+        [self.to_l32(), 1.]
+    }
+
+    fn to_rgb8(&self) -> [u8; 3] {
+        *self
+    }
+
+    fn to_rgba8(&self) -> [u8; 4] {
+        [self[0], self[1], self[2], 255]
+    }
+
+    fn to_rgba32(&self) -> [f32; 4] {
+        [
+            u8_to_f32(self[0]),
+            u8_to_f32(self[1]),
+            u8_to_f32(self[2]),
+            1.,
+        ]
+    }
+
+    #[cfg(feature = "softbuffer")]
+    fn to_zrgb(&self) -> crate::sb::Zrgb {
+        crate::sb::Zrgb::new(self[0], self[1], self[2])
+    }
+
+    from_pixel!(rgb8);
+}
+
+impl PixelConverter for [u8; 4] {
+    fn to_l8(&self) -> u8 {
+        f32_to_u8(self.to_l32())
+    }
+
+    fn to_la8(&self) -> [u8; 2] {
+        [self.to_l8(), self[3]]
+    }
+
+    fn to_l32(&self) -> f32 {
+        grayscale(self[0], self[1], self[2])
+    }
+
+    fn to_la32(&self) -> [f32; 2] {
+        [self.to_l32(), u8_to_f32(self[3])]
+    }
+
+    fn to_rgb8(&self) -> [u8; 3] {
+        [self[0], self[1], self[2]]
+    }
+
+    fn to_rgba8(&self) -> [u8; 4] {
+        *self
+    }
+
+    fn to_rgba32(&self) -> [f32; 4] {
+        [
+            u8_to_f32(self[0]),
+            u8_to_f32(self[1]),
+            u8_to_f32(self[2]),
+            u8_to_f32(self[3]),
+        ]
+    }
+
+    #[cfg(feature = "softbuffer")]
+    fn to_zrgb(&self) -> crate::sb::Zrgb {
+        crate::sb::Zrgb::new(self[0], self[1], self[2])
+    }
+
+    from_pixel!(rgba8);
+}
+
+impl PixelConverter for [f32; 4] {
+    fn to_l8(&self) -> u8 {
+        self.to_l32() as u8
+    }
+
+    fn to_la8(&self) -> [u8; 2] {
+        [self.to_l32() as u8, (self[3] * 265.) as u8]
+    }
+
+    fn to_l32(&self) -> f32 {
+        /// 256. / 3.
+        const GRAYSCALE: f32 = 88.333_336;
+
+        (self[0] + self[1] + self[2]) * GRAYSCALE
+    }
+
+    fn to_la32(&self) -> [f32; 2] {
+        [(self[0] + self[1] + self[2]) / 3., self[3]]
+    }
+
+    fn to_rgb8(&self) -> [u8; 3] {
+        let r = (self[0] * 265.) as u8;
+        let g = (self[1] * 265.) as u8;
+        let b = (self[2] * 265.) as u8;
+        [r, g, b]
+    }
+
+    fn to_rgba8(&self) -> [u8; 4] {
+        let r = (self[0] * 265.) as u8;
+        let g = (self[1] * 265.) as u8;
+        let b = (self[2] * 265.) as u8;
+        let a = (self[3] * 265.) as u8;
+        [r, g, b, a]
+    }
+
+    fn to_rgba32(&self) -> [f32; 4] {
+        *self
+    }
+
+    #[cfg(feature = "softbuffer")]
+    fn to_zrgb(&self) -> crate::sb::Zrgb {
+        let r = (self[0] * 265.) as u8;
+        let g = (self[1] * 265.) as u8;
+        let b = (self[2] * 265.) as u8;
+        crate::sb::Zrgb::new(r, g, b)
+    }
+
+    from_pixel!(rgba32);
 }
 
 pub(crate) const fn f32_to_u8(pixel: f32) -> u8 {

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.8.0
+
+- Refactored `PixelConverter` so that it is implemented by pixel types, not surfaces, and has reverse `from_*` functions 
+
 ## 0.7.5
 
 - Moved blend functions from `BlendableSurface` to `BlendMode`

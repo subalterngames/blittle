@@ -11,7 +11,7 @@ macro_rules! impl_from_surface {
                 let buffer = value
                     .buffer()
                     .iter()
-                    .map(|pixel| Surface::<S, $from>::$converter(pixel))
+                    .map(|pixel| pixel.$converter())
                     .collect();
                 Self {
                     size: value.size,
@@ -25,74 +25,74 @@ macro_rules! impl_from_surface {
     };
 }
 
-impl_from_surface!(u8, [u8; 2], pixel_to_la8);
-impl_from_surface!(u8, f32, pixel_to_l32);
-impl_from_surface!(u8, [f32; 2], pixel_to_la32);
-impl_from_surface!(u8, [u8; 3], pixel_to_rgb8);
-impl_from_surface!(u8, [u8; 4], pixel_to_rgba8);
-impl_from_surface!(u8, [f32; 4], pixel_to_rgba32);
+impl_from_surface!(u8, [u8; 2], to_la8);
+impl_from_surface!(u8, f32, to_l32);
+impl_from_surface!(u8, [f32; 2], to_la32);
+impl_from_surface!(u8, [u8; 3], to_rgb8);
+impl_from_surface!(u8, [u8; 4], to_rgba8);
+impl_from_surface!(u8, [f32; 4], to_rgba32);
 
-impl_from_surface!([u8; 2], u8, pixel_to_l8);
-impl_from_surface!([u8; 2], f32, pixel_to_l32);
-impl_from_surface!([u8; 2], [f32; 2], pixel_to_la32);
-impl_from_surface!([u8; 2], [u8; 3], pixel_to_rgb8);
-impl_from_surface!([u8; 2], [u8; 4], pixel_to_rgba8);
-impl_from_surface!([u8; 2], [f32; 4], pixel_to_rgba32);
+impl_from_surface!([u8; 2], u8, to_l8);
+impl_from_surface!([u8; 2], f32, to_l32);
+impl_from_surface!([u8; 2], [f32; 2], to_la32);
+impl_from_surface!([u8; 2], [u8; 3], to_rgb8);
+impl_from_surface!([u8; 2], [u8; 4], to_rgba8);
+impl_from_surface!([u8; 2], [f32; 4], to_rgba32);
 
-impl_from_surface!(f32, u8, pixel_to_l8);
-impl_from_surface!(f32, [u8; 2], pixel_to_la8);
-impl_from_surface!(f32, [f32; 2], pixel_to_la32);
-impl_from_surface!(f32, [u8; 3], pixel_to_rgb8);
-impl_from_surface!(f32, [u8; 4], pixel_to_rgba8);
-impl_from_surface!(f32, [f32; 4], pixel_to_rgba32);
+impl_from_surface!(f32, u8, to_l8);
+impl_from_surface!(f32, [u8; 2], to_la8);
+impl_from_surface!(f32, [f32; 2], to_la32);
+impl_from_surface!(f32, [u8; 3], to_rgb8);
+impl_from_surface!(f32, [u8; 4], to_rgba8);
+impl_from_surface!(f32, [f32; 4], to_rgba32);
 
-impl_from_surface!([f32; 2], u8, pixel_to_l8);
-impl_from_surface!([f32; 2], [u8; 2], pixel_to_la8);
-impl_from_surface!([f32; 2], f32, pixel_to_l32);
-impl_from_surface!([f32; 2], [u8; 3], pixel_to_rgb8);
-impl_from_surface!([f32; 2], [u8; 4], pixel_to_rgba8);
-impl_from_surface!([f32; 2], [f32; 4], pixel_to_rgba32);
+impl_from_surface!([f32; 2], u8, to_l8);
+impl_from_surface!([f32; 2], [u8; 2], to_la8);
+impl_from_surface!([f32; 2], f32, to_l32);
+impl_from_surface!([f32; 2], [u8; 3], to_rgb8);
+impl_from_surface!([f32; 2], [u8; 4], to_rgba8);
+impl_from_surface!([f32; 2], [f32; 4], to_rgba32);
 
-impl_from_surface!([u8; 3], u8, pixel_to_l8);
-impl_from_surface!([u8; 3], [u8; 2], pixel_to_la8);
-impl_from_surface!([u8; 3], f32, pixel_to_l32);
-impl_from_surface!([u8; 3], [f32; 2], pixel_to_la32);
-impl_from_surface!([u8; 3], [u8; 4], pixel_to_rgba8);
-impl_from_surface!([u8; 3], [f32; 4], pixel_to_rgba32);
+impl_from_surface!([u8; 3], u8, to_l8);
+impl_from_surface!([u8; 3], [u8; 2], to_la8);
+impl_from_surface!([u8; 3], f32, to_l32);
+impl_from_surface!([u8; 3], [f32; 2], to_la32);
+impl_from_surface!([u8; 3], [u8; 4], to_rgba8);
+impl_from_surface!([u8; 3], [f32; 4], to_rgba32);
 
-impl_from_surface!([u8; 4], u8, pixel_to_l8);
-impl_from_surface!([u8; 4], [u8; 2], pixel_to_la8);
-impl_from_surface!([u8; 4], f32, pixel_to_l32);
-impl_from_surface!([u8; 4], [f32; 2], pixel_to_la32);
-impl_from_surface!([u8; 4], [u8; 3], pixel_to_rgb8);
-impl_from_surface!([u8; 4], [f32; 4], pixel_to_rgba32);
+impl_from_surface!([u8; 4], u8, to_l8);
+impl_from_surface!([u8; 4], [u8; 2], to_la8);
+impl_from_surface!([u8; 4], f32, to_l32);
+impl_from_surface!([u8; 4], [f32; 2], to_la32);
+impl_from_surface!([u8; 4], [u8; 3], to_rgb8);
+impl_from_surface!([u8; 4], [f32; 4], to_rgba32);
 
-impl_from_surface!([f32; 4], u8, pixel_to_l8);
-impl_from_surface!([f32; 4], [u8; 2], pixel_to_la8);
-impl_from_surface!([f32; 4], f32, pixel_to_l32);
-impl_from_surface!([f32; 4], [f32; 2], pixel_to_la32);
-impl_from_surface!([f32; 4], [u8; 3], pixel_to_rgb8);
-impl_from_surface!([f32; 4], [u8; 4], pixel_to_rgba8);
+impl_from_surface!([f32; 4], u8, to_l8);
+impl_from_surface!([f32; 4], [u8; 2], to_la8);
+impl_from_surface!([f32; 4], f32, to_l32);
+impl_from_surface!([f32; 4], [f32; 2], to_la32);
+impl_from_surface!([f32; 4], [u8; 3], to_rgb8);
+impl_from_surface!([f32; 4], [u8; 4], to_rgba8);
 
 #[cfg(feature = "softbuffer")]
 mod impl_softbuffer {
     use super::*;
     use crate::sb::Zrgb;
 
-    impl_from_surface!(u8, Zrgb, pixel_to_zrgb);
-    impl_from_surface!([u8; 2], Zrgb, pixel_to_zrgb);
-    impl_from_surface!(f32, Zrgb, pixel_to_zrgb);
-    impl_from_surface!([f32; 2], Zrgb, pixel_to_zrgb);
-    impl_from_surface!([u8; 3], Zrgb, pixel_to_zrgb);
-    impl_from_surface!([u8; 4], Zrgb, pixel_to_zrgb);
-    impl_from_surface!([f32; 4], Zrgb, pixel_to_zrgb);
+    impl_from_surface!(u8, Zrgb, to_zrgb);
+    impl_from_surface!([u8; 2], Zrgb, to_zrgb);
+    impl_from_surface!(f32, Zrgb, to_zrgb);
+    impl_from_surface!([f32; 2], Zrgb, to_zrgb);
+    impl_from_surface!([u8; 3], Zrgb, to_zrgb);
+    impl_from_surface!([u8; 4], Zrgb, to_zrgb);
+    impl_from_surface!([f32; 4], Zrgb, to_zrgb);
 
-    impl_from_surface!(Zrgb, u8, pixel_to_l8);
-    impl_from_surface!(Zrgb, [u8; 2], pixel_to_la8);
-    impl_from_surface!(Zrgb, f32, pixel_to_l32);
-    impl_from_surface!(Zrgb, [f32; 2], pixel_to_la32);
-    impl_from_surface!(Zrgb, [u8; 3], pixel_to_rgb8);
-    impl_from_surface!(Zrgb, [u8; 4], pixel_to_rgba8);
+    impl_from_surface!(Zrgb, u8, to_l8);
+    impl_from_surface!(Zrgb, [u8; 2], to_la8);
+    impl_from_surface!(Zrgb, f32, to_l32);
+    impl_from_surface!(Zrgb, [f32; 2], to_la32);
+    impl_from_surface!(Zrgb, [u8; 3], to_rgb8);
+    impl_from_surface!(Zrgb, [u8; 4], to_rgba8);
 }
 
 #[cfg(feature = "png")]

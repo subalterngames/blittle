@@ -39,9 +39,21 @@ You can blend the pixels of two surfaces together using a `BlendableSurface`.
 
 `BlendableSurface.blend` is usually slower than `Surface.blit` but it can be sped up by calling `BlendableSurface.lock()`.
 
-## Converting surfaces
+## Converting surfaces and pixels
 
-The `PixelConverter` trait can be used to convert one surface into another type of surface:
+The `PixelConverter` trait can be used to convert one pixel type to another:
+
+```
+use blittle::PixelConverter;
+
+let mut l8 = 101u8;
+let rgb8 = l8.to_rgb8();
+assert_eq!(rgb8, [101, 101, 101]);
+l8 = u8::from_rgb8(&rgb8);
+assert_eq!(l8, 101);
+```
+
+`PixelConverter` can also be used to convert one surface to another:
 
 ```
 use blittle::{PixelConverter, Rgb8Surface, Rgba8Surface, Size};
